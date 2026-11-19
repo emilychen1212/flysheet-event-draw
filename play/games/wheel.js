@@ -47,6 +47,11 @@ function injectCss() {
   .g-wheel .hub { position: absolute; left: 50%; top: 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #fff3c4, #f2b33d 55%, #b9731b); box-shadow: 0 0 0 5px #7a1712, 0 6px 14px rgba(0, 0, 0, .4);
     display: grid; place-items: center; color: #7a1712; font: 900 clamp(16px, 4.6vw, 26px)/1 'Noto Sans TC', sans-serif; letter-spacing: .05em; z-index: 1; }
+  .g-wheel .hub[role=button] { cursor: pointer; transition: transform .15s var(--ease-bounce); }
+  .g-wheel:not(.spinning):not(.won) .hub[role=button] { animation: g-hub 1.6s ease-in-out infinite; }
+  .g-wheel .hub[role=button]:active { transform: translate(-50%, -50%) scale(.9); }
+  .g-wheel .hub[role=button]:focus-visible { outline: 4px solid #ffe2a8; outline-offset: 3px; }
+  @keyframes g-hub { 0%, 100% { box-shadow: 0 0 0 5px #7a1712, 0 6px 14px rgba(0, 0, 0, .4); } 50% { box-shadow: 0 0 0 5px #7a1712, 0 0 0 14px rgba(255, 226, 168, .35), 0 6px 14px rgba(0, 0, 0, .4); } }
   .g-wheel .sign { text-align: center; color: #ffe2a8; font-weight: 700; letter-spacing: .3em; font-size: 13px; margin-top: 16px; opacity: .85; }
   `;
   document.head.appendChild(s);
@@ -171,7 +176,16 @@ function sizeOf() {
 
 let onResize;
 
-export function init(container, prizes) {
+
+function bindTrigger(node, theme) {
+  if (!node || !theme || !theme.onTrigger) return;
+  node.setAttribute('role', 'button');
+  node.setAttribute('tabindex', '0');
+  node.addEventListener('click', (e) => { e.stopPropagation(); theme.onTrigger(); });
+  node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); theme.onTrigger(); } });
+}
+
+export function init(container, prizes, theme) {
   injectCss();
   segs = prizes.map((p, i) => ({
     prizeId: p.prizeId, name: p.name,
@@ -187,6 +201,8 @@ export function init(container, prizes) {
   canvas = el.querySelector('canvas.disc');
   pointer = el.querySelector('.pointer');
   bulbs = el.querySelector('.rim');
+  bindTrigger(el.querySelector('.hub'), theme);
+  el.querySelector('.hub').setAttribute('aria-label', '按這裡開始抽獎');
   const layout = () => {
     const d = sizeOf();
     el.style.setProperty('--d', d + 'px');

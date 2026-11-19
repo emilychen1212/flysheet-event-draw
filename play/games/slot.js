@@ -47,6 +47,11 @@ function injectCss() {
   .g-slot .lever .ball { position: absolute; left: 50%; top: -18px; width: 30px; height: 30px; margin-left: -15px; border-radius: 50%;
     background: radial-gradient(circle at 35% 30%, #ff9a8a, #d9261b 60%, #7a0e08); box-shadow: 0 3px 6px rgba(0, 0, 0, .5); }
   .g-slot .lever .base { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; background: var(--gold); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .3); }
+  .g-slot .lever[role=button] { cursor: pointer; }
+  .g-slot .lever[role=button]::before { content: ''; position: absolute; inset: -14px -10px; }
+  .g-slot:not(.spin):not(.win) .lever[role=button] .ball { animation: g-ball 1.4s ease-in-out infinite; }
+  @keyframes g-ball { 50% { box-shadow: 0 3px 6px rgba(0,0,0,.5), 0 0 0 8px rgba(255, 107, 61, .35); } }
+  .g-slot .lever[role=button]:focus-visible { outline: 3px solid #f5d777; outline-offset: 4px; border-radius: 8px; }
   .g-slot .lever.pull .rod { transform: scaleY(-1); transition: transform .18s ease-in; }
   .g-slot .prize-name { text-align: center; margin-top: 14px; min-height: 22px; font-weight: 700; letter-spacing: .1em; color: #f5d777; font-size: 15px; }
   .g-slot .coins { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
@@ -96,7 +101,16 @@ function setY(r, y) {
   r.strip.style.transform = `translateY(${-y}px)`;
 }
 
-export function init(container, prizes) {
+
+function bindTrigger(node, theme) {
+  if (!node || !theme || !theme.onTrigger) return;
+  node.setAttribute('role', 'button');
+  node.setAttribute('tabindex', '0');
+  node.addEventListener('click', (e) => { e.stopPropagation(); theme.onTrigger(); });
+  node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); theme.onTrigger(); } });
+}
+
+export function init(container, prizes, theme) {
   injectCss();
   const real = prizes.filter((p) => !p.isLose);
   symbols = real.map((p, i) => ({ prizeId: p.prizeId, name: p.name, icon: p.isSpecial ? '7️⃣' : ICONS[i % ICONS.length] }));
@@ -109,6 +123,8 @@ export function init(container, prizes) {
     <div class="prize-name"></div><div class="coins"></div></div>`;
   el = container.querySelector('.g-slot');
   measure();
+  bindTrigger(el.querySelector('.lever'), theme);
+  el.querySelector('.lever').setAttribute('aria-label', '拉下拉桿開始抽獎');
   reels = Array.from(el.querySelectorAll('.strip')).map((strip, i) => ({ strip, y: 0, v: 0, state: 'idle', i }));
   reels.forEach((r) => setY(r, (Math.floor(Math.random() * symbols.length)) * H));
   onResize = () => {

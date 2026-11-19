@@ -243,7 +243,9 @@ async function showGame() {
   stage().innerHTML = `<div class="game-area"><div id="game" style="width:100%;display:flex;justify-content:center"></div><div id="controls" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px"></div></div>`;
   if (S.game && S.game.destroy) S.game.destroy();
   S.game = await loadGame();
-  S.game.init($('#game'), S.data.prizes, { drawMode: S.ev.drawMode });
+  // 遊戲本體（轉盤中間的「抽」、拉桿、把手、彩券）也可以直接按來開始，和下方按鈕效果相同
+  const onTrigger = () => { const b = $('#start'); if (b && !b.classList.contains('busy')) b.click(); };
+  S.game.init($('#game'), S.data.prizes, { drawMode: S.ev.drawMode, onTrigger });
   showStartButton();
 }
 

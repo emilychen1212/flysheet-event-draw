@@ -154,12 +154,17 @@ function buildTicket() {
 }
 
 let onResize;
-export function init(container) {
+let trigger = null;
+
+export function init(container, prizes, theme) {
+  trigger = theme && theme.onTrigger;
   injectCss();
   container.innerHTML = `<div class="g-scratch"><div class="awning"></div><div class="shop">柑仔店</div>
     <div class="ticket"></div><div class="caption">— 按下方按鈕，拿一張彩券 —</div></div>`;
   el = container.querySelector('.g-scratch');
   card = el.querySelector('.ticket');
+  card.style.cursor = 'pointer';
+  card.addEventListener('click', () => { if (!enabled && !card.classList.contains('printing') && trigger) trigger(); });
   buildTicket();
   onResize = () => { if (coat && !coat.classList.contains('off') && !moves) paintCoat(); };
   window.addEventListener('resize', onResize);

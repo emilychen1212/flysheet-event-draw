@@ -34,6 +34,11 @@ function injectCss() {
   .g-gacha .knob { position: absolute; right: 12%; top: 42%; width: calc(var(--d) * .2); height: calc(var(--d) * .2); border-radius: 50%; background: #fff;
     box-shadow: inset 0 0 0 4px #1b2a52; transition: transform .2s; }
   .g-gacha .knob::before { content: ''; position: absolute; left: 50%; top: 10%; bottom: 10%; width: 22%; margin-left: -11%; border-radius: 6px; background: #1b2a52; }
+  .g-gacha .knob[role=button] { cursor: pointer; }
+  .g-gacha .knob[role=button]::after { content: ''; position: absolute; inset: -12px; border-radius: 50%; }
+  .g-gacha .knob[role=button]:not(.turn) { animation: g-knob 1.5s ease-in-out infinite; }
+  @keyframes g-knob { 50% { box-shadow: inset 0 0 0 4px #1b2a52, 0 0 0 8px rgba(255, 255, 255, .45); } }
+  .g-gacha .knob[role=button]:focus-visible { outline: 3px solid #1b2a52; outline-offset: 4px; }
   .g-gacha .knob.turn { animation: g-turn 1.1s cubic-bezier(.5, 0, .3, 1); }
   @keyframes g-turn { to { transform: rotate(720deg); } }
   .g-gacha .outlet { position: absolute; left: 12%; top: 44%; width: calc(var(--d) * .24); height: calc(var(--d) * .2); border-radius: 12px; background: #14203f; box-shadow: inset 0 6px 0 rgba(0,0,0,.4); }
@@ -170,7 +175,16 @@ function run() {
 
 function esc(v) { return String(v ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`); }
 
-export function init(container, prizes) {
+
+function bindTrigger(node, theme) {
+  if (!node || !theme || !theme.onTrigger) return;
+  node.setAttribute('role', 'button');
+  node.setAttribute('tabindex', '0');
+  node.addEventListener('click', (e) => { e.stopPropagation(); theme.onTrigger(); });
+  node.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); theme.onTrigger(); } });
+}
+
+export function init(container, prizes, theme) {
   injectCss();
   colors = prizes.map((p, i) => p.color || (p.isLose ? LOSE_COLOR : PALETTE[i % PALETTE.length]));
   colorOf = {};
@@ -187,6 +201,8 @@ export function init(container, prizes) {
   el = container.querySelector('.g-gacha');
   canvas = el.querySelector('canvas');
   ctx = canvas.getContext('2d');
+  bindTrigger(el.querySelector('.knob'), theme);
+  el.querySelector('.knob').setAttribute('aria-label', '轉動把手開始抽獎');
   size();
   makeBalls();
   mode = 'idle';
