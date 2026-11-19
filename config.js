@@ -4,7 +4,7 @@
  */
 window.APP_CONFIG = {
   // Apps Script 部署成「網頁應用程式」後拿到的網址（以 /exec 結尾）
-  GAS_URL: '',
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbxJ0NnzqK1p_pV89W66BXYVDBLH1rzKH7PmAqR3aO9QFHvZiDVUtmeB8cdjzUxi9JI6ig/exec',
 
   // Google Cloud Console 建立的 OAuth 用戶端 ID（以 .apps.googleusercontent.com 結尾）
   GOOGLE_CLIENT_ID: ''
