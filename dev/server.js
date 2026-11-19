@@ -23,6 +23,25 @@ g.CONFIG.ADMIN_EMAIL = 'admin@example.com';
 g.CONFIG.OAUTH_CLIENT_ID = 'dev-client';
 g.setup();
 
+// 示範資料：業務帳號 sales@example.com、一個客戶與活動（關掉 SEED=0）
+function call(action, payload, token) {
+  g.resetTables_();
+  const r = JSON.parse(g.doPost({ postData: { contents: JSON.stringify({ action, payload, token }) } }).getContent());
+  if (!r.ok) throw new Error(action + '：' + r.error);
+  return r.data;
+}
+if (process.env.SEED !== '0') {
+  const admin = call('auth.login', { idToken: 'dev:admin@example.com' }).token;
+  call('users.save', { email: 'sales@example.com', name: '王業務', role: 'sales', status: 'active' }, admin);
+  const sales = call('auth.login', { idToken: 'dev:sales@example.com' }).token;
+  const c = call('clients.save', { name: '臺大醫圖', type: '醫學院', note: '窗口：林館員' }, sales);
+  call('clients.save', { name: '馬偕紀念醫院', type: '醫院' }, admin);
+  call('events.save', { event: { eventCode: 'EBM27', clientId: c.clientId, title: '實證醫學工具大集合　轉轉樂', subtitle: '完成登記就能抽，好禮帶回家！',
+    clientDisplayName: '臺大醫學院圖書館 × 飛資得', startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active',
+    gameType: 'wheel', drawMode: 'self', regMode: 'before', dailyLimit: 2 },
+    prizes: [{ name: '保溫杯', quantity: 5, isSpecial: true }, { name: '帆布袋', quantity: 20 }, { name: '貼紙組', quantity: 50 }, { name: '銘謝惠顧', quantity: 30, isLose: true }] }, sales);
+}
+
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.png': 'image/png', '.json': 'application/json', '.svg': 'image/svg+xml' };
 

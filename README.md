@@ -211,7 +211,7 @@ window.APP_CONFIG = {
 
 ## 五、開發者備註
 
-- 本機測試（不需要 Google 帳號）：`node dev/server.js` → `http://localhost:8770/dev/api-test.html`，用 `dev:admin@example.com` 登入。資料只存在記憶體。
+- 本機測試（不需要 Google 帳號）：`node dev/server.js` → 後台 `http://localhost:8770/admin/`（管理者 admin@example.com、業務 sales@example.com，會先建好示範資料；`SEED=0` 不建）；API 測試台 `http://localhost:8770/dev/api-test.html`。資料只存在記憶體。
 - 後端自我測試：`node dev/selftest.js`（權限、每日次數、測試資料清除、獎池不超抽等驗收項目）。
 - API 格式：POST、`Content-Type: text/plain`，body `{action, token, payload}`，回傳 `{ok, data, error, code}`。所有 action 列在 `gas/Code.gs` 的 `routes_()`。
 - 時區一律 `Asia/Taipei`；時間存成文字 `yyyy-MM-dd HH:mm:ss`。
@@ -219,7 +219,7 @@ window.APP_CONFIG = {
 ## 開發進度
 
 - [x] 第 1 階段：GAS 與資料層（setup、Sheet 讀寫、驗證、權限、API 路由）
-- [ ] 第 2 階段：後台基本功能
+- [x] 第 2 階段：後台基本功能（登入、使用者、客戶、活動、獎池、QR code）
 - [ ] 第 3 階段：前台主流程＋轉盤
 - [ ] 第 4 階段：其餘三款遊戲＋音效＋慶祝動畫
 - [ ] 第 5 階段：推廣頁、潛在客戶、展示頁
