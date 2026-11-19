@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API 測試台</title>
+<script src="../config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root { --navy: #1f2f57; --orange: #f07b2a; --bg: #f6f3ef; --line: #e2ddd5; --ink: #2b2a28; --muted: #77716a; --ok: #2f8f5b; --bad: #c4432b; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 "Noto Sans TC", system-ui, sans-serif; }
+  header { background: var(--navy); color: #fff; padding: 16px 20px; }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 4px 0 0; opacity: .75; font-size: 13px; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  section { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  h2 { margin: 0 0 10px; font-size: 15px; color: var(--navy); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button { border: 0; background: var(--navy); color: #fff; padding: 8px 14px; border-radius: 8px; font: inherit; cursor: pointer; }
+  button.alt { background: #fff; color: var(--navy); border: 1px solid var(--navy); }
+  button.warm { background: var(--orange); }
+  button:active { transform: translateY(1px); }
+  input, textarea { font: 13px/1.5 ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-radius: 8px; padding: 8px; width: 100%; }
+  textarea { min-height: 90px; }
+  pre { background: #1d1f24; color: #e9e6df; padding: 12px; border-radius: 8px; overflow: auto; max-height: 420px; font-size: 12.5px; margin: 0; white-space: pre-wrap; word-break: break-all; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 13px; }
+  .pill.ok { background: #e3f3ea; color: var(--ok); }
+  .pill.bad { background: #fbe7e2; color: var(--bad); }
+  .muted { color: var(--muted); font-size: 13px; }
+  ol { margin: 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>飛資得擺攤抽獎系統｜API 測試台</h1>
+  <p>第 1 階段用：確認 GAS、登入、白名單、權限都正常。正式後台完成後就不需要這頁。</p>
+</header>
+<main>
+  <section>
+    <h2>1. 設定檢查</h2>
+    <div id="configStatus" class="row"></div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnHealth" class="alt">測試 GAS 連線</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Google 登入</h2>
+    <div class="row">
+      <div id="gsiButton"></div>
+      <span id="who" class="muted">尚未登入</span>
+      <button id="btnLogout" class="alt" hidden>登出</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. 快速測試</h2>
+    <div class="row">
+      <button data-action="auth.me">我是誰</button>
+      <button data-action="settings.get">系統設定</button>
+      <button data-action="users.list">使用者名單（管理者）</button>
+      <button data-action="clients.list">我的客戶</button>
+      <button data-action="events.list">活動列表</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="btnDemo" class="warm">建立示範客戶＋活動 DEMO1</button>
+      <button id="btnPublic" class="alt">讀取 DEMO1 公開設定</button>
+      <button id="btnDraw" class="alt">登記並抽一次</button>
+      <button id="btnClear" class="alt">清除 DEMO1 測試資料</button>
+    </div>
+    <p class="muted">示範活動是「測試模式」，資料會標記 isTest，按「清除」後獎池數量會還原。</p>
+  </section>
+
+  <section>
+    <h2>4. 自訂呼叫</h2>
+    <div class="row" style="gap:12px">
+      <input id="action" placeholder="action，例如 events.get" style="max-width:280px">
+    </div>
+    <textarea id="payload" placeholder='payload（JSON），例如 {"eventId":"..."}' style="margin-top:8px">{}</textarea>
+    <div class="row" style="margin-top:8px"><button id="btnCall">送出</button></div>
+  </section>
+
+  <section>
+    <h2>回應</h2>
+    <pre id="out">（按上面的按鈕試試看）</pre>
+  </section>
+</main>
+
+<script type="module">
+import { api, login, logout, getToken } from '../assets/js/api.js';
+
+const cfg = window.APP_CONFIG || {};
+const $ = (s) => document.querySelector(s);
+const out = $('#out');
+const show = (label, data, isErr) => {
+  out.textContent = (isErr ? '❌ ' : '✅ ') + label + '\n\n' + (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+};
+async function run(label, fn) {
+  out.textContent = '⏳ ' + label + '…';
+  try { show(label, await fn()); } catch (e) { show(label, e.message + (e.code ? '（' + e.code + '）' : ''), true); }
+}
+
+$('#configStatus').innerHTML = [
+  ['GAS_URL', cfg.GAS_URL], ['GOOGLE_CLIENT_ID', cfg.GOOGLE_CLIENT_ID]
+].map(([k, v]) => `<span class="pill ${v ? 'ok' : 'bad'}">${k}：${v ? '已填' : '未填'}</span>`).join('');
+
+$('#btnHealth').onclick = () => run('GAS 連線', async () => {
+  if (!cfg.GAS_URL) throw new Error('config.js 還沒填 GAS_URL');
+  const r = await fetch(cfg.GAS_URL);
+  return r.json();
+});
+
+function refreshWho() {
+  if (!getToken()) { $('#who').textContent = '尚未登入'; $('#btnLogout').hidden = true; return; }
+  api('auth.me').then((u) => {
+    $('#who').textContent = `已登入：${u.name || ''}（${u.email}，${u.role === 'admin' ? '管理者' : '業務'}）`;
+    $('#btnLogout').hidden = false;
+  }).catch(() => { $('#who').textContent = '登入已逾時，請重新登入'; });
+}
+
+function initGsi() {
+  if (cfg.DEV) {
+    // 本機開發模式（dev/server.js）：不用真的 Google 登入
+    $('#gsiButton').innerHTML = '<input id="devEmail" value="admin@example.com" style="width:220px"> <button id="devLogin">本機登入</button>';
+    $('#devLogin').onclick = () => run('本機登入', async () => { const u = await login('dev:' + $('#devEmail').value); refreshWho(); return u; });
+    return;
+  }
+  if (!cfg.GOOGLE_CLIENT_ID) { $('#gsiButton').textContent = 'config.js 還沒填 GOOGLE_CLIENT_ID'; return; }
+  if (!window.google || !google.accounts) { setTimeout(initGsi, 200); return; }
+  google.accounts.id.initialize({
+    client_id: cfg.GOOGLE_CLIENT_ID,
+    callback: (resp) => run('登入', async () => { const u = await login(resp.credential); refreshWho(); return u; })
+  });
+  google.accounts.id.renderButton($('#gsiButton'), { theme: 'filled_blue', size: 'large', text: 'signin_with', locale: 'zh-TW' });
+}
+initGsi();
+refreshWho();
+$('#btnLogout').onclick = async () => { await logout(); refreshWho(); show('登出', '已登出'); };
+
+document.querySelectorAll('[data-action]').forEach((b) => {
+  b.onclick = () => run(b.dataset.action, () => api(b.dataset.action));
+});
+
+$('#btnCall').onclick = () => {
+  let payload;
+  try { payload = JSON.parse($('#payload').value || '{}'); } catch (e) { show('payload', 'JSON 格式錯誤：' + e.message, true); return; }
+  run($('#action').value, () => api($('#action').value.trim(), payload));
+};
+
+function isoLocal(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+$('#btnDemo').onclick = () => run('建立示範資料', async () => {
+  const events = await api('events.list');
+  const exist = events.find((e) => e.eventCode === 'DEMO1');
+  if (exist) return { message: 'DEMO1 已經存在', event: exist };
+  const client = await api('clients.save', { name: '示範醫學院', type: '醫學院', note: 'API 測試台建立' });
+  const now = new Date();
+  return api('events.save', {
+    event: {
+      eventCode: 'DEMO1', clientId: client.clientId, title: '示範抽獎活動', subtitle: 'API 測試用',
+      startAt: isoLocal(now), endAt: isoLocal(new Date(now.getTime() + 7 * 864e5)),
+      status: 'draft', gameType: 'wheel', drawMode: 'self', regMode: 'before', dailyLimit: 3, isTestMode: true
+    },
+    prizes: [
+      { name: '保溫杯', quantity: 3, isSpecial: true },
+      { name: '帆布袋', quantity: 10 },
+      { name: '銘謝惠顧', quantity: 20, isLose: true }
+    ]
+  });
+});
+
+$('#btnPublic').onclick = () => run('DEMO1 公開設定（不需登入）', () => api('public.getEvent', { eventCode: 'DEMO1' }));
+
+$('#btnDraw').onclick = () => run('登記並抽一次（不需登入）', async () => {
+  const reg = await api('public.register', {
+    eventCode: 'DEMO1', name: '測試者', email: 'tester@example.com', organization: '示範醫院', identity: '館員', privacyConsent: true
+  });
+  if (reg.limitReached) return reg;
+  const draw = await api('public.draw', { eventCode: 'DEMO1', ticket: reg.ticket, deviceType: 'desktop' });
+  return { 登記: reg, 抽獎結果: draw };
+});
+
+$('#btnClear').onclick = () => run('清除測試資料', async () => {
+  const ev = (await api('events.list')).find((e) => e.eventCode === 'DEMO1');
+  if (!ev) throw new Error('還沒有 DEMO1，請先按「建立示範客戶＋活動」');
+  return api('events.clearTest', { eventId: ev.eventId });
+});
+</script>
+</body>
+</html>

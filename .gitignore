@@ -1,0 +1,4 @@
+.DS_Store
+node_modules/
+# 規格提示詞只留在本機
+*提示詞*.md
