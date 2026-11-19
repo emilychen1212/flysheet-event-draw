@@ -9,6 +9,7 @@ export const startLabel = '拉下拉桿！';
 
 const ICONS = ['💎', '🔔', '⭐', '🍒', '👑', '🍀', '🎁', '🍋', '🍇', '🎲', '🌟', '🎯'];
 const LOSE_ICON = '💨';
+const PACE = 2 / 3;   // 整體節奏（1 = 原本速度，數字越小越快）
 let el, reels = [], symbols = [], H = 84, raf = 0, running = false, spinning = false, onResize, reelTick = 0;
 
 function injectCss() {
@@ -213,10 +214,10 @@ export function play(resultPrize) {
   return new Promise(async (resolve) => {
     if (!spinning) start();
     const targets = targetsFor(resultPrize);
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 500 * PACE));
     for (let i = 0; i < 3; i++) {
-      await stopReel(reels[i], targets[i], H * symbols.length * (i === 2 && !resultPrize.isLose ? 2 : 1), 900 + i * 150);
-      if (i === 1 && targets[0] === targets[1]) await new Promise((r) => setTimeout(r, 350)); // 前兩軸一樣時，多吊一下胃口
+      await stopReel(reels[i], targets[i], H * symbols.length * (i === 2 && !resultPrize.isLose ? 2 : 1), (900 + i * 150) * PACE);
+      if (i === 1 && targets[0] === targets[1]) await new Promise((r) => setTimeout(r, 350 * PACE)); // 前兩軸一樣時，多吊一下胃口
     }
     spinning = false;
     el.classList.remove('spin');
@@ -228,7 +229,7 @@ export function play(resultPrize) {
     } else {
       label.textContent = '差一點點！';
     }
-    setTimeout(resolve, resultPrize.isLose ? 400 : 900);
+    setTimeout(resolve, (resultPrize.isLose ? 400 : 900) * PACE);
   });
 }
 
