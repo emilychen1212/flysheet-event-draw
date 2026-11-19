@@ -7,10 +7,12 @@
  */
 import { api } from '../assets/js/api.js';
 import { sfx, setMuted, isMuted, unlock } from './sound.js';
+import { celebrate } from './celebrate.js';
 
 const params = new URLSearchParams(location.search);
 const CODE = (params.get('event') || '').trim().toUpperCase();
 const VIEW = params.get('view') || '';
+const PREVIEW = params.get('preview') || '';   // 後台「試玩」：不連後端、不留紀錄
 const root = document.getElementById('app');
 
 const S = {
@@ -21,7 +23,8 @@ const S = {
   remainingToday: 0,
   participantId: '',
   lastReg: null,     // 最近一次登記資料（推廣頁帶入用）
-  playing: false     // 遊戲進行中（離開頁面要提醒）
+  playing: false,    // 遊戲進行中（離開頁面要提醒）
+  draw: (payload) => api('public.draw', payload)
 };
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -46,7 +49,7 @@ function renderShell() {
       <span class="brand-logo"><span class="mark">F</span><span class="name">飛資得</span></span>
       ${ev.clientDisplayName ? `<span class="client">${esc(ev.clientDisplayName)}</span>` : ''}
       <div class="tools">
-        ${ev.isTestMode ? '<span class="p-test">測試中</span>' : ''}
+        ${ev.isTestMode ? '<span class="p-test">測試中</span>' : ''}${PREVIEW ? '<span class="p-test">預覽模式</span>' : ''}
         <button class="p-mute" id="mute" aria-label="切換音效"></button>
       </div>
     </header>
@@ -247,7 +250,7 @@ async function showGame() {
 function showStartButton(errorMsg) {
   const left = S.ev.regMode === 'before' ? `<div class="left">今天還可以抽 ${S.remainingToday} 次</div>` : '';
   $('#controls').innerHTML = `${errorMsg ? `<div class="p-err" style="max-width:420px;width:100%">${esc(errorMsg)}</div>` : ''}
-    <button class="p-btn p-start" id="start">${errorMsg ? '再試一次' : '開始抽獎！'}</button>${left}`;
+    <button class="p-btn p-start" id="start">${errorMsg ? '再試一次' : (S.game.startLabel || '開始抽獎！')}</button>${left}`;
   $('#start').addEventListener('click', doDraw);
 }
 
@@ -260,7 +263,7 @@ async function doDraw() {
   if (S.game.start) S.game.start();
   let res;
   try {
-    res = await api('public.draw', { eventCode: CODE, ticket: S.ticket, deviceType: isMobile() ? 'mobile' : 'desktop' });
+    res = await S.draw({ eventCode: CODE, ticket: S.ticket, deviceType: isMobile() ? 'mobile' : 'desktop' });
   } catch (err) {
     S.playing = false;
     if (S.game.cancel) S.game.cancel();
@@ -273,7 +276,7 @@ async function doDraw() {
     if (S.game.cancel) S.game.cancel();
     return showLimit(res.message);
   }
-  $('#controls').innerHTML = '<div class="left">🎶</div>';
+  $('#controls').innerHTML = `<div class="left" style="font-size:15px">${S.game.playingHint || '🎶'}</div>`;
   await S.game.play(res.prize);
   S.playing = false;
   if (res.prize.isLose) sfx.lose();
@@ -284,6 +287,7 @@ async function doDraw() {
     S.remainingToday = res.remainingToday || 0;
   }
   showResult(res);
+  if (res.prize.isSpecial) celebrate(res.prize.name);
 }
 
 function stateFromCode(code) {
@@ -344,6 +348,14 @@ function nextPerson() {
 
 /* ---------- 啟動 ---------- */
 (async function boot() {
+  if (PREVIEW) {
+    const { previewData, previewDraw } = await import('./preview.js');
+    S.data = previewData(PREVIEW);
+    S.ev = S.data.event;
+    S.draw = previewDraw;
+    renderShell();
+    return showGame();
+  }
   if (!CODE) return bareMessage('🔗', '網址缺少活動代碼', '請重新掃描 QR code');
   try {
     S.data = await api('public.getEvent', { eventCode: CODE });

@@ -44,6 +44,12 @@ if (process.env.SEED !== '0') {
   call('events.save', { event: { eventCode: 'BOOTH1', clientId: c.clientId, title: '年會攤位轉轉樂', subtitle: '轉到就送！',
     startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active', gameType: 'wheel', drawMode: 'booth', regMode: 'none' },
     prizes: [{ name: '原子筆', quantity: 30 }, { name: '便利貼', quantity: 30 }, { name: '大獎：AirPods', quantity: 1, isSpecial: true }, { name: '銘謝惠顧', quantity: 20, isLose: true }] }, sales);
+  // 其餘三款遊戲（攤位＋不登記，方便連續測試）
+  [['SCR1', 'scratch', '古早味刮刮樂'], ['SLOT1', 'slot', '幸運拉霸大挑戰'], ['GACHA1', 'gacha', '飛資得扭蛋機']].forEach(([code, game, title]) => {
+    call('events.save', { event: { eventCode: code, clientId: c.clientId, title, subtitle: '攤位限定，抽完換下一位！', startAt: '2026-11-01T09:00',
+      endAt: '2026-12-31T17:00', status: 'active', gameType: game, drawMode: 'booth', regMode: 'none' },
+      prizes: [{ name: '保溫杯', quantity: 3, isSpecial: true }, { name: '帆布袋', quantity: 20 }, { name: '貼紙組', quantity: 30 }, { name: '銘謝惠顧', quantity: 20, isLose: true }] }, sales);
+  });
   call('events.save', { event: { eventCode: 'AFTER1', clientId: c.clientId, title: '中獎再登記', startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00',
     status: 'active', gameType: 'wheel', drawMode: 'booth', regMode: 'after' },
     prizes: [{ name: '咖啡券', quantity: 10 }, { name: '銘謝惠顧', quantity: 2, isLose: true }] }, sales);

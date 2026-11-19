@@ -122,6 +122,10 @@ export async function render(root, [eventId], app) {
         ${Object.entries(GAMES).map(([k, g]) => `<label class="choice"><input type="radio" name="gameType" value="${k}" ${dis}>
           <span class="ico">${g.ico}</span><span class="t">${g.label}</span><span class="d"><b style="color:var(--orange-600);font-weight:500">${g.theme}</b><br>${g.desc}</span></label>`).join('')}
       </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px">
+        <span class="small muted">試玩（用目前的獎項、不會留下紀錄）：</span>
+        ${Object.entries(GAMES).map(([k, g]) => `<button type="button" class="btn sm" data-preview="${k}">${g.ico} ${g.label}</button>`).join('')}
+      </div>
       <div class="field" style="margin-top:16px"><label>音效預設</label>
         <div class="seg" style="align-self:flex-start">
           <label><input type="radio" name="soundDefault" value="on" ${dis}><span>🔊 開啟</span></label>
@@ -498,6 +502,19 @@ export async function render(root, [eventId], app) {
         if (!app.dirty) render(root, [eventId], app);
       } catch (err) { toastErr(err); }
     });
+  });
+
+  root.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-preview]');
+    if (!b) return;
+    try {
+      localStorage.setItem('fed.preview', JSON.stringify({
+        title: F('title').value || '遊戲試玩',
+        client: F('clientDisplayName').value || (F('clientId').selectedOptions[0] || {}).dataset?.name || '',
+        prizes: prizeState.map((p) => ({ name: p.name, quantity: p.quantity, isLose: p.isLose, isSpecial: p.isSpecial, color: p.color }))
+      }));
+    } catch (err) { /* 無痕模式就用範例獎項 */ }
+    window.open(new URL('../play/?preview=' + b.dataset.preview, location.href).toString(), '_blank', 'noopener');
   });
 
   if (!isNew) {

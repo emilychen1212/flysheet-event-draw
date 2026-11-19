@@ -211,7 +211,7 @@ window.APP_CONFIG = {
 
 ## 五、開發者備註
 
-- 本機測試（不需要 Google 帳號）：`node dev/server.js` → 前台 `http://localhost:8770/play/?event=EBM27`（自助＋先登記）、`BOOTH1`（攤位＋不登記）、`AFTER1`（攤位＋中獎後登記）；後台 `http://localhost:8770/admin/`（管理者 admin@example.com、業務 sales@example.com，會先建好示範資料；`SEED=0` 不建）；API 測試台 `http://localhost:8770/dev/api-test.html`。資料只存在記憶體。
+- 本機測試（不需要 Google 帳號）：`node dev/server.js` → 前台 `http://localhost:8770/play/?event=EBM27`（自助＋先登記）、`BOOTH1`（攤位＋不登記）、`AFTER1`（攤位＋中獎後登記）、`SCR1`／`SLOT1`／`GACHA1`（三款遊戲）；遊戲試玩 `http://localhost:8770/play/?preview=wheel`；後台 `http://localhost:8770/admin/`（管理者 admin@example.com、業務 sales@example.com，會先建好示範資料；`SEED=0` 不建）；API 測試台 `http://localhost:8770/dev/api-test.html`。資料只存在記憶體。
 - 後端自我測試：`node dev/selftest.js`（權限、每日次數、測試資料清除、獎池不超抽等驗收項目）。
 - API 格式：POST、`Content-Type: text/plain`，body `{action, token, payload}`，回傳 `{ok, data, error, code}`。所有 action 列在 `gas/Code.gs` 的 `routes_()`。
 - 時區一律 `Asia/Taipei`；時間存成文字 `yyyy-MM-dd HH:mm:ss`。
@@ -221,7 +221,7 @@ window.APP_CONFIG = {
 - [x] 第 1 階段：GAS 與資料層（setup、Sheet 讀寫、驗證、權限、API 路由）
 - [x] 第 2 階段：後台基本功能（登入、使用者、客戶、活動、獎池、QR code）
 - [x] 第 3 階段：前台主流程＋轉盤（登記三模式、每日次數、測試模式）
-- [ ] 第 4 階段：其餘三款遊戲＋音效＋慶祝動畫
+- [x] 第 4 階段：刮刮樂、拉霸機、彩球機＋各遊戲音效＋特別獎慶祝動畫＋後台試玩
 - [ ] 第 5 階段：推廣頁、潛在客戶、展示頁
 - [ ] 第 6 階段：報表、Excel、成果圖卡
 - [ ] 第 7 階段：總覽頁、細節打磨

@@ -76,6 +76,19 @@ export const sfx = {
     [1047, 1319, 1568].forEach((f) => tone(f, { type: 'triangle', dur: 1.1, vol: 0.12, at: 0.7 }));
     for (let i = 0; i < 6; i++) noise({ dur: 0.08, vol: 0.12, at: 0.7 + i * 0.07, freq: 5000 + i * 400 });
   },
+  /** 刮刮樂：刮擦沙沙聲（短促、可以連續呼叫） */
+  scratch() { noise({ dur: 0.05, vol: 0.12, freq: 3800 + Math.random() * 1500, q: 0.8 }); },
+  reveal() { [880, 1175].forEach((f, i) => tone(f, { type: 'sine', dur: 0.18, vol: 0.15, at: i * 0.07 })); },
+  /** 拉霸：拉桿、滾輪、停輪、金幣 */
+  lever() { noise({ dur: 0.18, vol: 0.18, freq: 400, q: 0.6, type: 'lowpass' }); tone(140, { type: 'square', dur: 0.12, vol: 0.08, at: 0.05 }); },
+  reel() { tone(520 + Math.random() * 80, { type: 'square', dur: 0.03, vol: 0.035 }); },
+  reelStop() { tone(180, { type: 'square', dur: 0.08, vol: 0.12 }); noise({ dur: 0.06, vol: 0.12, freq: 1200 }); },
+  coin(at = 0) { tone(1976, { type: 'square', dur: 0.06, vol: 0.06, at }); tone(2637, { type: 'square', dur: 0.12, vol: 0.06, at: at + 0.05 }); },
+  /** 彩球機：轉把手喀喀、球滾動、打開 */
+  crank() { tone(300, { type: 'square', dur: 0.04, vol: 0.07 }); noise({ dur: 0.04, vol: 0.1, freq: 900 }); },
+  rattle() { noise({ dur: 0.06, vol: 0.06, freq: 2400 + Math.random() * 2000, q: 3 }); },
+  roll() { noise({ dur: 0.7, vol: 0.1, freq: 300, q: 0.7, type: 'lowpass' }); tone(110, { type: 'sine', dur: 0.7, vol: 0.06, slide: 0.7 }); },
+  pop() { tone(500, { type: 'sine', dur: 0.12, vol: 0.25, slide: 2.4 }); noise({ dur: 0.05, vol: 0.12, freq: 2500 }); },
   lose() {
     tone(392, { type: 'triangle', dur: 0.22, vol: 0.18 });
     tone(330, { type: 'triangle', dur: 0.22, vol: 0.18, at: 0.18 });
