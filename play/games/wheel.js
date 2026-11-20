@@ -5,15 +5,15 @@
  * 按中間燈泡圓盤開始 → 下方獎項卡片輪流亮起、越跑越慢 → 停在後端決定的那張 → 翻面揭曉。
  * 這裡沒有任何決定中獎的邏輯，停在哪張完全由 play() 傳入。
  *
- * 人物圖：chouchou/doctor.svg、chouchou/nurse.svg，之後要換成 PNG 只要改下面兩個檔名。
+ * 人物圖：chouchou/doctor.png、chouchou/nurse.png（Emily 提供的透明背景圖），要換圖直接覆蓋這兩個檔案。
  */
 import { sfx } from '../sound.js';
 
 export const startLabel = '開始抽獎！';
 
 const ART = {
-  doctor: new URL('./chouchou/doctor.svg', import.meta.url).href,
-  nurse: new URL('./chouchou/nurse.svg', import.meta.url).href
+  doctor: new URL('./chouchou/doctor.png', import.meta.url).href,
+  nurse: new URL('./chouchou/nurse.png', import.meta.url).href
 };
 
 let el, cards = [], prizesRef = [], cur = -1, timer = 0, running = false, theme = {}, onResize;
