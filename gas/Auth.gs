@@ -21,7 +21,7 @@ function verifyGoogleIdToken_(idToken) {
 
 function apiLogin_(p) {
   var g = verifyGoogleIdToken_(p.idToken);
-  var user = where_('Users', function (u) { return u.email === g.email; })[0];
+  var user = cachedRows_('Users').filter(function (u) { return u.email === g.email; })[0];
   if (!user) throw appError_('「' + g.email + '」不在使用名單中，請聯絡管理者開通', 'NOT_WHITELISTED');
   if (user.status !== 'active') throw appError_('這個帳號已被停用，請聯絡管理者', 'DISABLED');
   if (!user.name && g.name) user = update_('Users', user.userId, { name: g.name });
@@ -44,7 +44,7 @@ function requireUser_(token) {
   if (!token) throw appError_('請先登入', 'AUTH');
   var sess = cacheGetJson_('sess_' + token);
   if (!sess) throw appError_('登入已逾時，請重新登入', 'AUTH');
-  var user = find_('Users', sess.userId);
+  var user = cachedRows_('Users').filter(function (u) { return u.userId === sess.userId; })[0];
   if (!user || user.status !== 'active') {
     cacheRemove_('sess_' + token);
     throw appError_('帳號已停用或不存在，請聯絡管理者', 'AUTH');

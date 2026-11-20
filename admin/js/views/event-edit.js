@@ -1,5 +1,5 @@
 /** 活動編輯（新增／修改／檢視） */
-import { api } from '../../../assets/js/api.js';
+import { api, cachedApi } from '../../../assets/js/api.js';
 import {
   $, $$, esc, toast, toastErr, modal, confirmBox, busy, emptyHtml, ICON, badge,
   STATE, GAMES, DRAW_MODES, REG_MODES, toLocalInput
@@ -23,8 +23,8 @@ export async function render(root, [eventId], app) {
   const isNew = !eventId;
   const [settings, clientsAll, loaded] = await Promise.all([
     app.settings(),
-    api('clients.list'),
-    isNew ? null : api('events.get', { eventId })
+    cachedApi('clients.list'),
+    isNew ? null : cachedApi('events.get', { eventId })
   ]);
 
   let ev, prizes;

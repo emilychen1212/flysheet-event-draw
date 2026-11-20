@@ -89,11 +89,20 @@ function cleanRegistration_(ev, p) {
   return d;
 }
 
+/** 今天抽了幾次。Draws 表會越來越大，所以用快取計數器，快取不見時才回頭數表 */
+function dailyKey_(eventId, participantId) {
+  return 'dc_' + eventId + '_' + participantId + '_' + today_();
+}
+
 function countTodayDraws_(eventId, participantId) {
+  var hit = cache_().get(dailyKey_(eventId, participantId));
+  if (hit !== null && hit !== undefined && hit !== '') return Number(hit) || 0;
   var today = today_();
-  return where_('Draws', function (d) {
+  var n = where_('Draws', function (d) {
     return d.eventId === eventId && d.participantId === participantId && d.drawnAt.indexOf(today) === 0;
   }).length;
+  cache_().put(dailyKey_(eventId, participantId), String(n), 6 * 60 * 60);
+  return n;
 }
 
 function issueTicket_(eventId, participantId) {
@@ -212,6 +221,7 @@ function apiPublicDraw_(p) {
       isTest: ev.isTestMode
     });
     cacheRemove_('pub_' + ev.eventCode);
+    if (participantId) cache_().put(dailyKey_(ev.eventId, participantId), String(used + 1), 6 * 60 * 60);
 
     var res = { drawId: draw.drawId, prize: publicPrize_(prize), limitReached: false, isTest: ev.isTestMode };
     if (ticketKey) {

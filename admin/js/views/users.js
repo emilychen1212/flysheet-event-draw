@@ -1,9 +1,9 @@
 /** 使用者管理（僅管理者） */
-import { api } from '../../../assets/js/api.js';
+import { api, cachedApi } from '../../../assets/js/api.js';
 import { $, esc, modal, toast, emptyHtml, ICON, fmtDate } from '../ui.js';
 
 export async function render(root, _p, app) {
-  const users = await api('users.list');
+  const users = await cachedApi('users.list');
   const sorted = users.slice().sort((a, b) => (a.status === b.status ? a.createdAt.localeCompare(b.createdAt) : a.status === 'active' ? -1 : 1));
 
   root.innerHTML = `

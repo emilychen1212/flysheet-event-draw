@@ -12,7 +12,7 @@ var PRIZE_FIELDS = ['prizeId', 'eventId', 'name', 'quantity', 'remaining', 'isLo
 function findEventByCode_(code) {
   code = String(code || '').trim().toUpperCase();
   if (!code) return null;
-  return where_('Events', function (e) { return e.eventCode === code; })[0] || null;
+  return cachedRows_('Events').filter(function (e) { return e.eventCode === code; })[0] || null;
 }
 
 function prizesOf_(eventId) {

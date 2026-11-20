@@ -1,5 +1,5 @@
 /** 專案活動列表 */
-import { api } from '../../../assets/js/api.js';
+import { api, cachedApi } from '../../../assets/js/api.js';
 import { $, esc, emptyHtml, ICON, badge, STATE, GAMES, fmtRange } from '../ui.js';
 
 export function eventTable(list, app, { showClient = true } = {}) {
@@ -18,7 +18,7 @@ export function eventTable(list, app, { showClient = true } = {}) {
 }
 
 export async function render(root, _p, app) {
-  const events = await api('events.list');
+  const events = await cachedApi('events.list');
   const f = { q: '', client: '', status: '', owner: app.isAdmin() ? '' : 'me' };
   const owners = [...new Map(events.map((e) => [e.ownerId, e.ownerName])).entries()];
   const clients = [...new Map(events.filter((e) => e.canEdit).map((e) => [e.clientId, e.clientName])).entries()];

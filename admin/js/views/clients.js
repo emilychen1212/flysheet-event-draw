@@ -1,5 +1,5 @@
 /** 客戶列表 */
-import { api } from '../../../assets/js/api.js';
+import { api, cachedApi } from '../../../assets/js/api.js';
 import { $, esc, modal, toast, emptyHtml, ART_CLIENT, ICON } from '../ui.js';
 
 export const CLIENT_TYPES = ['醫學院', '醫院', '護校', '其他'];
@@ -29,7 +29,7 @@ export function editClient(c) {
 }
 
 export async function render(root, _p, app) {
-  const clients = await api('clients.list');
+  const clients = await cachedApi('clients.list');
   let q = '';
   let type = '';
 

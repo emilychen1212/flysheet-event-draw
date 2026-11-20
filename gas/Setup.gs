@@ -54,6 +54,8 @@ function setup() {
   });
 
   resetTables_();
+  dropTableCache_('Users');
+  dropTableCache_('Events');
   var email = normEmail_(CONFIG.ADMIN_EMAIL);
   var admin = where_('Users', function (u) { return u.email === email; })[0];
   if (!admin) {

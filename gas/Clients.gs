@@ -44,6 +44,6 @@ function apiClientsDelete_(p, user) {
 
 function userNameMap_() {
   var map = {};
-  all_('Users').forEach(function (u) { map[u.userId] = u.name || u.email; });
+  cachedRows_('Users').forEach(function (u) { map[u.userId] = u.name || u.email; });
   return map;
 }

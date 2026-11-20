@@ -1,5 +1,5 @@
 /** 總覽（第 7 階段會加上統計數字，目前先列出活動） */
-import { api } from '../../../assets/js/api.js';
+import { api, cachedApi } from '../../../assets/js/api.js';
 import { esc, emptyHtml, ICON, badge, STATE, GAMES, fmtRange } from '../ui.js';
 
 function card(e) {
@@ -15,7 +15,7 @@ function card(e) {
 }
 
 export async function render(root, _p, app) {
-  const events = (await api('events.list')).filter((e) => e.ownerId === app.user.userId);
+  const events = (await cachedApi('events.list')).filter((e) => e.ownerId === app.user.userId);
   const now = new Date().toISOString().slice(0, 10);
   const live = events.filter((e) => e.state === 'open' || (e.status === 'active' && e.state === 'soldOut'));
   const upcoming = events.filter((e) => !live.includes(e) && e.status !== 'ended' && e.endAt.slice(0, 10) >= now)

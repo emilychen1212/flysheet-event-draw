@@ -1,11 +1,11 @@
 /** 客戶詳情：基本資料＋該客戶所有活動 */
-import { api } from '../../../assets/js/api.js';
+import { api, cachedApi } from '../../../assets/js/api.js';
 import { $, esc, toast, toastErr, confirmBox, emptyHtml, ICON, fmtDate } from '../ui.js';
 import { editClient } from './clients.js';
 import { eventTable } from './events.js';
 
 export async function render(root, [clientId], app) {
-  const [clients, events] = await Promise.all([api('clients.list'), api('events.list')]);
+  const [clients, events] = await Promise.all([cachedApi('clients.list'), cachedApi('events.list')]);
   const c = clients.find((x) => x.clientId === clientId);
   if (!c) {
     root.innerHTML = emptyHtml({ title: '找不到這個客戶', text: '可能已被刪除，或這是其他業務的客戶', action: '<a class="btn" href="#/clients">回到客戶列表</a>' });

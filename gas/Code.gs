@@ -51,6 +51,13 @@ function doGet() {
 }
 
 function handle_(raw) {
+  var t0 = Date.now();
+  var out = handleInner_(raw);
+  out.ms = Date.now() - t0;
+  return out;
+}
+
+function handleInner_(raw) {
   try {
     var body;
     try { body = JSON.parse(raw || '{}'); } catch (err) { throw appError_('請求格式錯誤'); }

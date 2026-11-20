@@ -40,6 +40,28 @@ function resetTables_() {
   TABLES_ = {};
 }
 
+/* ---------- 讀取快取（只用在小表：Users、Events）----------
+ * 讀試算表每次要幾百毫秒，常用的小表放進 CacheService。
+ * 所有寫入都經過 insert_/update_/remove_/removeWhere_，寫入時會自動清掉快取，所以不會讀到舊資料。
+ * （若直接在試算表手動改資料，最多 CACHE_TABLE_SECONDS 秒後才會生效）
+ */
+var CACHED_TABLES = { Users: 1, Events: 1 };
+var CACHE_TABLE_SECONDS = 300;
+
+function cachedRows_(name) {
+  if (!CACHED_TABLES[name]) return all_(name);
+  if (TABLES_[name]) return TABLES_[name].rows;
+  var hit = cacheGetJson_('tbl_' + name);
+  if (hit) return hit;
+  var rows = all_(name);
+  try { cachePutJson_('tbl_' + name, rows, CACHE_TABLE_SECONDS); } catch (e) { /* 超過快取大小上限就直接讀表 */ }
+  return rows;
+}
+
+function dropTableCache_(name) {
+  if (CACHED_TABLES[name]) cacheRemove_('tbl_' + name);
+}
+
 function ss_() {
   return CONFIG.SHEET_ID ? SpreadsheetApp.openById(CONFIG.SHEET_ID) : SpreadsheetApp.getActiveSpreadsheet();
 }
@@ -119,7 +141,8 @@ function insert_(name, obj) {
   rec.createdAt = rec.createdAt || now;
   rec.updatedAt = now;
   t.sheet.appendRow(rowValues_(t.headers, rec));
-  delete TABLES_[name]; // 下次讀取時重新載入，確保列號正確
+  delete TABLES_[name];
+  dropTableCache_(name); // 下次讀取時重新載入，確保列號正確
   return rec;
 }
 
@@ -132,6 +155,7 @@ function update_(name, id, patch) {
   });
   row.updatedAt = now_();
   t.sheet.getRange(row._row, 1, 1, t.headers.length).setValues([rowValues_(t.headers, row)]);
+  dropTableCache_(name);
   return row;
 }
 
@@ -140,6 +164,7 @@ function remove_(name, id) {
   if (!row) return false;
   table_(name).sheet.deleteRow(row._row);
   delete TABLES_[name];
+  dropTableCache_(name);
   return true;
 }
 
@@ -156,6 +181,7 @@ function removeWhere_(name, pred) {
       .setValues(keep.map(function (r) { return rowValues_(t.headers, r); }));
   }
   delete TABLES_[name];
+  dropTableCache_(name);
   return removed;
 }
 

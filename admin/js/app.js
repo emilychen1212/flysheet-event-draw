@@ -1,5 +1,5 @@
 /** 後台主程式：登入、版面、路由 */
-import { api, login, logout, getToken } from '../../assets/js/api.js';
+import { api, cachedApi, login, logout, getToken, savedUser, saveUser } from '../../assets/js/api.js';
 import { $, esc, toastErr, loadingHtml, ICON } from './ui.js';
 
 const cfg = window.APP_CONFIG || {};
@@ -11,7 +11,7 @@ export const app = {
   _settings: null,
   /** 系統設定（預設登記欄位、身分選項、個資聲明），同一次開頁只讀一次 */
   async settings(force) {
-    if (!this._settings || force) this._settings = await api('settings.get');
+    if (!this._settings || force) this._settings = await (force ? api('settings.get') : cachedApi('settings.get', {}, 600000));
     return this._settings;
   },
   isAdmin() { return this.user && this.user.role === 'admin'; },
@@ -188,13 +188,31 @@ function start() {
   renderShell();
   lastHash = location.hash;
   route();
+  // 背景先把常用資料載進來，切換頁面時就不用再等
+  cachedApi('events.list').catch(() => {});
+  cachedApi('clients.list').catch(() => {});
+  app.settings().catch(() => {});
 }
 
 (async function boot() {
   if (!getToken()) return showLogin();
+  const remembered = savedUser();
+  if (remembered) {
+    // 先用記住的登入者直接進後台，同時在背景確認登入是否還有效
+    app.user = remembered;
+    start();
+    api('auth.me').then((u) => {
+      saveUser(u);
+      const changed = u.role !== app.user.role || u.name !== app.user.name;
+      app.user = u;
+      if (changed) start();
+    }).catch((e) => { if (e.code === 'AUTH') { app.user = null; showLogin('登入已逾時，請重新登入'); } });
+    return;
+  }
   root.innerHTML = loadingHtml('確認登入狀態');
   try {
     app.user = await api('auth.me');
+    saveUser(app.user);
     start();
   } catch (e) {
     showLogin(e.code === 'AUTH' ? '' : e.message);

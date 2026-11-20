@@ -95,6 +95,12 @@ check('同一人只存一筆參與者資料', rows('Participants').length === 1)
 // 模擬隔天：把他的抽獎時間改成昨天
 const yesterday = '2000-01-01 10:00:00';
 rows('Draws').forEach((x) => g.update_('Draws', x.drawId, { drawnAt: yesterday }));
+// 換日：今日次數的快取鍵含日期，模擬「明天」= 改掉 today_()
+const realToday = g.today_;
+g.today_ = () => '2099-01-02';
+check('隔天（快取鍵換日）不受昨天計數影響', g.countTodayDraws_(e1.event.eventId, rows('Participants')[0].participantId) === 0);
+g.today_ = realToday;
+rows('Participants').forEach((x) => g.cacheRemove_(g.dailyKey_(e1.event.eventId, x.participantId)));
 r = ok('public.register', reg);
 check('隔天可以再抽', r.remainingToday === 2 && !!r.ticket);
 
