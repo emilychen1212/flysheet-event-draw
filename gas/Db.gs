@@ -11,7 +11,7 @@ var SCHEMA = {
     'startAt', 'endAt', 'status', 'gameType', 'drawMode', 'regMode', 'dailyLimit', 'regFields',
     'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt'],
   Prizes: ['prizeId', 'eventId', 'name', 'quantity', 'remaining', 'isLose', 'isSpecial', 'color',
-    'sortOrder', 'createdAt', 'updatedAt'],
+    'sortOrder', 'createdAt', 'updatedAt', 'label'],
   Participants: ['participantId', 'eventId', 'name', 'email', 'phone', 'organization', 'identity',
     'identityOther', 'customAnswers', 'privacyConsent', 'wantsProductInfo', 'isTest', 'registeredAt',
     'createdAt', 'updatedAt'],
@@ -97,6 +97,14 @@ function table_(name) {
   var sh = sheet_(name);
   var values = sh.getDataRange().getValues();
   var headers = values[0].map(String);
+  // 新版本加的欄位：自動補在最右邊，不用重跑 setup()
+  var missing = SCHEMA[name].filter(function (h) { return headers.indexOf(h) < 0; });
+  if (missing.length) {
+    if (sh.getMaxColumns() < headers.length + missing.length) sh.insertColumnsAfter(sh.getMaxColumns(), headers.length + missing.length - sh.getMaxColumns());
+    sh.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold').setBackground('#1f2f57').setFontColor('#ffffff');
+    headers = headers.concat(missing);
+    values = values.map(function (row, i) { return i === 0 ? headers : row.concat(missing.map(function () { return ''; })); });
+  }
   var rows = [];
   for (var i = 1; i < values.length; i++) {
     var line = values[i];

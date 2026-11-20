@@ -7,7 +7,7 @@
 var LIMIT_MESSAGE = '今天的抽獎次數已用完，明天再來試試手氣！';
 
 function publicPrize_(p) {
-  return pick_(p, ['prizeId', 'name', 'isLose', 'isSpecial', 'color', 'sortOrder', 'quantity', 'remaining']);
+  return pick_(p, ['prizeId', 'name', 'label', 'isLose', 'isSpecial', 'color', 'sortOrder', 'quantity', 'remaining']);
 }
 
 function loadOpenEvent_(code) {

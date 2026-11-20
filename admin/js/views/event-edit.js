@@ -135,8 +135,8 @@ export async function render(root, [eventId], app) {
 
     <section class="card" id="s-prize">
       <h2 class="card-title"><span><span class="num">4</span>獎池設定</span></h2>
-      <p class="muted small" style="margin-top:-6px">每次抽獎依「剩餘數量」加權隨機，數量越多越容易抽中。一般獎項全部抽完後活動就會顯示「獎品已全數送出」。</p>
-      <div class="prize-head"><span></span><span>顏色</span><span>獎項名稱</span><span>數量</span><span></span><span></span><span style="text-align:right">占比</span><span></span></div>
+      <p class="muted small" style="margin-top:-6px">每次抽獎依「剩餘數量」加權隨機，數量越多越容易抽中。一般獎項全部抽完後活動就會顯示「獎品已全數送出」。「獎項標籤」選填（例如頭獎、加碼獎），會顯示在抽抽樂的獎項卡片上。</p>
+      <div class="prize-head"><span></span><span>顏色</span><span>獎項標籤 ＋ 獎品名稱</span><span>數量</span><span></span><span></span><span style="text-align:right">占比</span><span></span></div>
       <div class="prize-list" id="prizeList"></div>
       ${ro ? '' : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button type="button" class="btn sm" id="addPrize">${ICON.plus}新增獎項</button>
@@ -297,7 +297,8 @@ export async function render(root, [eventId], app) {
   const prizeRowHtml = (p, i) => `<div class="prize-row ${p.isLose ? 'lose' : ''}" data-i="${i}">
       <div class="order">${ro ? '' : `<button type="button" data-up title="上移">▲</button><button type="button" data-down title="下移">▼</button>`}</div>
       <input type="color" data-k="color" value="${esc(p.color || (p.isLose ? LOSE_COLOR : PALETTE[i % PALETTE.length]))}" title="遊戲中顯示的顏色" ${dis}>
-      <div><input class="input" data-k="name" value="${esc(p.name)}" placeholder="${p.isLose ? '銘謝惠顧' : '獎項名稱，例：保溫杯'}" maxlength="50" ${dis}>
+      <div class="names"><input class="input" data-k="label" value="${esc(p.label || '')}" placeholder="${p.isLose ? '標籤（選填）' : '標籤，例：頭獎'}" maxlength="20" ${dis} aria-label="獎項標籤">
+        <input class="input" data-k="name" value="${esc(p.name)}" placeholder="${p.isLose ? '銘謝惠顧' : '獎品名稱，例：保溫杯'}" maxlength="50" ${dis} aria-label="獎品名稱">
         ${p.prizeId ? `<div class="remain">剩餘 ${p.remaining} / ${p.quantity}</div>` : ''}</div>
       <input class="input" type="number" data-k="quantity" min="0" value="${p.quantity}" ${dis} aria-label="數量">
       <div class="flags">
@@ -333,7 +334,7 @@ export async function render(root, [eventId], app) {
     if (!row) return;
     const p = prizeState[row.dataset.i];
     const k = e.target.dataset.k;
-    if (k === 'name' || k === 'color') p[k] = e.target.value;
+    if (k === 'name' || k === 'color' || k === 'label') p[k] = e.target.value;
     if (k === 'quantity') p.quantity = e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value, 10) || 0);
     updateSummary();
   });
@@ -431,7 +432,7 @@ export async function render(root, [eventId], app) {
       isTestMode: F('isTestMode').checked
     },
     prizes: prizeState.map((p) => ({
-      prizeId: p.prizeId || '', name: p.name.trim() || (p.isLose ? '銘謝惠顧' : ''), quantity: p.quantity === '' ? -1 : p.quantity,
+      prizeId: p.prizeId || '', label: (p.label || '').trim(), name: p.name.trim() || (p.isLose ? '銘謝惠顧' : ''), quantity: p.quantity === '' ? -1 : p.quantity,
       isLose: p.isLose, isSpecial: p.isSpecial, color: p.color
     }))
   });
@@ -511,7 +512,7 @@ export async function render(root, [eventId], app) {
       localStorage.setItem('fed.preview', JSON.stringify({
         title: F('title').value || '遊戲試玩',
         client: F('clientDisplayName').value || (F('clientId').selectedOptions[0] || {}).dataset?.name || '',
-        prizes: prizeState.map((p) => ({ name: p.name, quantity: p.quantity, isLose: p.isLose, isSpecial: p.isSpecial, color: p.color }))
+        prizes: prizeState.map((p) => ({ name: p.name, label: p.label || '', quantity: p.quantity, isLose: p.isLose, isSpecial: p.isSpecial, color: p.color }))
       }));
     } catch (err) { /* 無痕模式就用範例獎項 */ }
     window.open(new URL('../play/?preview=' + b.dataset.preview, location.href).toString(), '_blank', 'noopener');

@@ -39,7 +39,7 @@ if (process.env.SEED !== '0') {
   call('events.save', { event: { eventCode: 'EBM27', clientId: c.clientId, title: '實證醫學工具大集合　轉轉樂', subtitle: '完成登記就能抽，好禮帶回家！',
     clientDisplayName: '臺大醫學院圖書館 × 飛資得', startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active',
     gameType: 'wheel', drawMode: 'self', regMode: 'before', dailyLimit: 2 },
-    prizes: [{ name: '保溫杯', quantity: 5, isSpecial: true }, { name: '帆布袋', quantity: 20 }, { name: '貼紙組', quantity: 50 }, { name: '銘謝惠顧', quantity: 30, isLose: true }] }, sales);
+    prizes: [{ label: '頭獎', name: '保溫杯', quantity: 5, isSpecial: true }, { label: 'JoVE 影片', name: '一個月體驗', quantity: 10 }, { label: '電子書', name: 'Thieme 電子書', quantity: 10 }, { label: '資料庫', name: 'UpToDate 試用', quantity: 10 }, { label: '精美好禮', name: '帆布袋', quantity: 20 }, { label: '幸運獎', name: '貼紙組', quantity: 50 }, { name: '再接再厲', quantity: 30, isLose: true }] }, sales);
   // 攤位操作＋不登記、攤位操作＋中獎後登記
   call('events.save', { event: { eventCode: 'BOOTH1', clientId: c.clientId, title: '年會攤位轉轉樂', subtitle: '轉到就送！',
     startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active', gameType: 'wheel', drawMode: 'booth', regMode: 'none' },

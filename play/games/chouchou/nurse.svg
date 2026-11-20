@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 290" fill="none" stroke="#145078" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+  <!-- 可愛 Q 版護理師：護理帽、制服、手持病歷夾、歡呼 -->
+  <g stroke="#FFD65A" stroke-width="6">
+    <path d="M196 80l10-12M202 100l15-2M186 64l4-15"/>
+  </g>
+  <!-- 舉起的手臂 -->
+  <path d="M154 190c22-16 32-38 28-66l-18-2c0 22-6 40-22 54z" fill="#fff"/>
+  <circle cx="174" cy="112" r="15" fill="#FFE3CC"/>
+  <path d="M168 106h14M168 114h14" stroke-width="3"/>
+  <!-- 制服 -->
+  <path d="M60 186q50-30 100 0l18 104H42z" fill="#fff"/>
+  <path d="M86 172l24 26 24-26" fill="#DDF4F7" stroke-width="4"/>
+  <path d="M86 172l24 26 24-26" stroke="#038BA2" stroke-width="5"/>
+  <path d="M110 198v80" stroke-width="3.5"/>
+  <rect x="122" y="214" width="26" height="10" rx="3" fill="#038BA2" stroke-width="3"/>
+  <!-- 病歷夾 -->
+  <g transform="rotate(-8 70 238)">
+    <rect x="36" y="200" width="62" height="80" rx="7" fill="#145078"/>
+    <rect x="44" y="212" width="46" height="60" rx="3" fill="#fff" stroke-width="3"/>
+    <rect x="56" y="194" width="22" height="12" rx="3" fill="#cfd6df" stroke-width="3"/>
+    <path d="M51 226h32M51 238h32M51 250h22" stroke="#038BA2" stroke-width="3.5"/>
+  </g>
+  <circle cx="92" cy="246" r="11" fill="#FFE3CC"/>
+  <!-- 脖子、頭、髮髻 -->
+  <rect x="99" y="146" width="22" height="22" rx="6" fill="#FFE3CC"/>
+  <circle cx="166" cy="84" r="20" fill="#6B4A3A"/>
+  <circle cx="58" cy="110" r="10" fill="#FFE3CC"/>
+  <circle cx="162" cy="110" r="10" fill="#FFE3CC"/>
+  <circle cx="110" cy="104" r="52" fill="#FFE3CC"/>
+  <path d="M57 108c-6-46 22-64 53-64s60 18 53 64c-6-18-20-30-38-34-14 12-40 16-56 8-4 12-8 20-12 26z" fill="#6B4A3A"/>
+  <!-- 護理帽 -->
+  <path d="M72 64q38-34 76 0l-6 20q-32-12-64 0z" fill="#fff"/>
+  <path d="M110 52v16M102 60h16" stroke="#038BA2" stroke-width="5"/>
+  <!-- 表情：笑瞇瞇 -->
+  <path d="M80 112q9-10 18 0M122 112q9-10 18 0" stroke="#2A2723" stroke-width="4.5"/>
+  <ellipse cx="80" cy="126" rx="10" ry="6" fill="#F9A8A0" stroke="none" opacity=".75"/>
+  <ellipse cx="140" cy="126" rx="10" ry="6" fill="#F9A8A0" stroke="none" opacity=".75"/>
+  <path d="M98 126q12 20 24 0z" fill="#E0584F" stroke-width="4"/>
+</svg>

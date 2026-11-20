@@ -7,7 +7,7 @@ var EVENT_FIELDS = ['eventId', 'eventCode', 'ownerId', 'clientId', 'title', 'sub
   'startAt', 'endAt', 'status', 'gameType', 'drawMode', 'regMode', 'dailyLimit', 'regFields',
   'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt'];
 
-var PRIZE_FIELDS = ['prizeId', 'eventId', 'name', 'quantity', 'remaining', 'isLose', 'isSpecial', 'color', 'sortOrder'];
+var PRIZE_FIELDS = ['prizeId', 'eventId', 'name', 'label', 'quantity', 'remaining', 'isLose', 'isSpecial', 'color', 'sortOrder'];
 
 function findEventByCode_(code) {
   code = String(code || '').trim().toUpperCase();
@@ -136,7 +136,7 @@ function cleanPrizes_(list) {
     var color = str_(x.color, 20);
     if (color && !/^#[0-9a-fA-F]{6}$/.test(color)) color = '';
     return {
-      prizeId: str_(x.prizeId, 20), name: name, quantity: qty,
+      prizeId: str_(x.prizeId, 20), name: name, label: str_(x.label, 20), quantity: qty,
       isLose: bool_(x.isLose), isSpecial: bool_(x.isSpecial) && !bool_(x.isLose),
       color: color, sortOrder: i + 1
     };
@@ -168,12 +168,12 @@ function syncPrizes_(eventId, list) {
       keepIds[old.prizeId] = 1;
       var remaining = Math.max(0, Math.min(x.quantity, old.remaining + (x.quantity - old.quantity)));
       update_('Prizes', old.prizeId, {
-        name: x.name, quantity: x.quantity, remaining: remaining, isLose: x.isLose,
+        name: x.name, label: x.label, quantity: x.quantity, remaining: remaining, isLose: x.isLose,
         isSpecial: x.isSpecial, color: x.color, sortOrder: x.sortOrder
       });
     } else {
       insert_('Prizes', {
-        eventId: eventId, name: x.name, quantity: x.quantity, remaining: x.quantity, isLose: x.isLose,
+        eventId: eventId, name: x.name, label: x.label, quantity: x.quantity, remaining: x.quantity, isLose: x.isLose,
         isSpecial: x.isSpecial, color: x.color, sortOrder: x.sortOrder
       });
     }
@@ -281,7 +281,7 @@ function apiEventsCopy_(p, user) {
     var saved = insert_('Events', copy);
     prizesOf_(src.eventId).forEach(function (x) {
       insert_('Prizes', {
-        eventId: saved.eventId, name: x.name, quantity: x.quantity, remaining: x.quantity,
+        eventId: saved.eventId, name: x.name, label: x.label, quantity: x.quantity, remaining: x.quantity,
         isLose: x.isLose, isSpecial: x.isSpecial, color: x.color, sortOrder: x.sortOrder
       });
     });

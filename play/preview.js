@@ -4,10 +4,11 @@
  * 正式抽獎一律由後端 public.draw 決定。
  */
 const SAMPLE = [
-  { name: '保溫杯', quantity: 5, isSpecial: true, color: '#f27a2b' },
-  { name: '帆布袋', quantity: 20, color: '#1b2a52' },
-  { name: '貼紙組', quantity: 40, color: '#f8b07c' },
-  { name: '銘謝惠顧', quantity: 30, isLose: true, color: '#cfc8bd' }
+  { label: '頭獎', name: '保溫杯', quantity: 5, isSpecial: true, color: '#f27a2b' },
+  { label: 'JoVE 影片', name: '一個月體驗', quantity: 10, color: '#038BA2' },
+  { label: '精美好禮', name: '帆布袋', quantity: 20, color: '#1b2a52' },
+  { label: '幸運獎', name: '貼紙組', quantity: 40, color: '#f8b07c' },
+  { name: '再接再厲', quantity: 30, isLose: true, color: '#cfc8bd' }
 ];
 
 let current = [];
@@ -17,7 +18,7 @@ export function previewData(gameType) {
   try { saved = JSON.parse(localStorage.getItem('fed.preview') || 'null'); } catch (e) { /* 無痕模式 */ }
   const list = saved && saved.prizes && saved.prizes.length ? saved.prizes : SAMPLE;
   const prizes = list.map((p, i) => ({
-    prizeId: 'p' + i, name: p.name || (p.isLose ? '銘謝惠顧' : '獎項 ' + (i + 1)), isLose: !!p.isLose, isSpecial: !!p.isSpecial,
+    prizeId: 'p' + i, label: p.label || '', name: p.name || (p.isLose ? '銘謝惠顧' : '獎項 ' + (i + 1)), isLose: !!p.isLose, isSpecial: !!p.isSpecial,
     color: p.color || '', sortOrder: i + 1, quantity: Number(p.quantity) || 0, remaining: Number(p.quantity) || 0
   }));
   current = prizes;

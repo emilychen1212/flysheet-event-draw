@@ -103,7 +103,7 @@ export const STATE = {
   soldOut: { label: '獎品已抽完', cls: 'orange' }
 };
 export const GAMES = {
-  wheel: { label: '轉盤', ico: '🎡', theme: '夜市節慶風', desc: '燈籠彩旗、暖色系，轉盤減速停在結果' },
+  wheel: { label: '抽抽樂', ico: '🎪', theme: '醫學古早味風', desc: '燈泡圓盤、醫師護理師歡呼，獎項卡片跑燈停在結果' },
   scratch: { label: '刮刮樂', ico: '🎫', theme: '台灣古早復古風', desc: '柑仔店懷舊彩券，手指刮開塗層' },
   slot: { label: '拉霸機', ico: '🎰', theme: '華麗賭場風', desc: '黑金配色、跑馬燈，三軸依序停輪' },
   gacha: { label: '彩球機', ico: '🔮', theme: '飛資得扁平可愛風', desc: '彩球彈跳、轉把手，滾出一顆揭曉' }

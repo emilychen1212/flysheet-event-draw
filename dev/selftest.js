@@ -166,6 +166,19 @@ ok('users.save', { userId: ben.user.userId, role: 'sales', status: 'disabled' },
 check('停用後原本的登入立即失效', call('events.list', {}, ben.token).code === 'AUTH');
 check('停用後不能再登入', call('auth.login', { idToken: 'dev:ben@example.com' }).code === 'DISABLED');
 
+console.log('\n[獎項標籤（新欄位自動補上）]');
+{
+  // 模擬舊版試算表：Prizes 沒有 label 欄
+  const sh = ss.getSheetByName('Prizes');
+  const hdr = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const li = hdr.indexOf('label');
+  sh.cells.forEach((row) => { if (row) row[li] = undefined; });
+  const lb = ok('events.save', { event: baseEvent('LBL1', c1.clientId, { regMode: 'none' }), prizes: [{ name: 'AirPods', label: '頭獎', quantity: 1 }, { name: '銘謝惠顧', quantity: 1, isLose: true }] }, amy.token);
+  check('舊表自動補上 label 欄並存入', lb.prizes[0].label === '頭獎');
+  check('前台拿得到獎項標籤', ok('public.getEvent', { eventCode: 'LBL1' }).prizes[0].label === '頭獎');
+  check('其他獎項資料沒有錯位', rows('Prizes').every((p) => typeof p.quantity === 'number' && p.eventId));
+}
+
 console.log('\n[資料格式]');
 const sheetPhone = ok('public.register', Object.assign({}, reg, { eventCode: 'EBM27', email: 'zero@example.com', phone: '0912-345-678' }));
 const pz = rows('Participants').find((x) => x.email === 'zero@example.com');
