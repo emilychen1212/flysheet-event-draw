@@ -2,8 +2,8 @@
  * 前台抽獎頁
  *   /play/?event=活動代碼               抽獎頁
  *   /play/?event=活動代碼&view=screen   展示頁（第 5 階段）
- * 流程：〔登記〕→ 遊戲 → 結果 →（攤位）下一位／（自助）換另一位登記
- * 自助掃碼不提供「再抽一次」：同一人要再抽必須重新登記，次數上限由後端判斷。
+ * 流程：〔登記〕→ 遊戲 → 結果 →（攤位）下一位
+ * 自助掃碼不顯示剩餘次數、不提供再抽按鈕：同一人要再抽必須重新整理頁面重新登記，次數上限只由後端判斷。
  * 中獎結果只來自後端 public.draw，前端只負責演出。
  */
 import { api } from '../assets/js/api.js';
@@ -95,9 +95,8 @@ function showState(state, message) {
 function showLimit(message) {
   S.ticket = '';
   stage().innerHTML = `<div class="panel p-msg"><div class="big">🌙</div><h2>${esc(message || '今天的抽獎次數已用完，明天再來試試手氣！')}</h2>
-    <div style="margin-top:18px">${S.ev.drawMode === 'booth' ? '<button class="p-btn navy" id="next">下一位</button>' : '<button class="p-btn ghost" id="switchPerson">換另一位登記</button>'}</div></div>`;
+    ${S.ev.drawMode === 'booth' ? '<div style="margin-top:18px"><button class="p-btn navy" id="next">下一位</button></div>' : ''}</div>`;
   $('#next')?.addEventListener('click', nextPerson);
-  $('#switchPerson')?.addEventListener('click', nextPerson);
 }
 
 /* ---------- 登記表 ---------- */
@@ -217,7 +216,7 @@ function bindForm(form, onSubmit) {
 
 function showRegister() {
   stage().innerHTML = `<div class="panel"><h2>先登記，再抽獎 ✍️</h2>
-    <p class="lead">填寫基本資料就能參加抽獎${S.ev.dailyLimit > 1 ? `，每人每天可以抽 ${S.ev.dailyLimit} 次` : ''}。</p>${regFormHtml({ claim: false })}</div>`;
+    <p class="lead">填寫基本資料就能參加抽獎。</p>${regFormHtml({ claim: false })}</div>`;
   const form = $('#regForm');
   bindForm(form, async (d) => {
     const r = await api('public.register', { ...d, eventCode: CODE });
@@ -253,7 +252,7 @@ async function showGame() {
 }
 
 function showStartButton(errorMsg) {
-  const left = S.ev.regMode === 'before' ? `<div class="left">今天還可以抽 ${S.remainingToday} 次</div>` : '';
+  const left = '';
   $('#controls').innerHTML = `${errorMsg ? `<div class="p-err" style="max-width:420px;width:100%">${esc(errorMsg)}</div>` : ''}
     <button class="p-btn p-start" id="start">${errorMsg ? '再試一次' : (S.game.startLabel || '開始抽獎！')}</button>${left}`;
   $('#start').addEventListener('click', doDraw);
@@ -309,13 +308,8 @@ function showResult(res) {
   let actions = '';
   if (booth) {
     actions = '<button class="p-btn navy" id="next">下一位</button>';
-  } else if (ev.regMode === 'before') {
-    // 不提供「再抽一次」，避免一直抽到想要的獎品為止；要換人用同一支手機時可以按「換另一位登記」
-    const left = S.remainingToday > 0
-      ? `今天還有 ${S.remainingToday} 次機會，晚點可以重新登記再來抽！`
-      : '今天的抽獎次數已用完，明天再來試試手氣！';
-    actions = `<div style="color:var(--text-muted);font-size:14px">${left}</div>` + '<button class="p-btn ghost" id="switchPerson">換另一位登記</button>';
   }
+  // 自助掃碼：不顯示剩餘次數、不提供再抽或換人的按鈕（次數上限只由後端控管，參與者不需要知道）
   const claimForm = ev.regMode === 'after' && !p.isLose && res.claimToken;
   const box = $('#controls');
   box.innerHTML = `<div class="panel p-result ${p.isLose ? 'lose' : ''}">
@@ -327,7 +321,6 @@ function showResult(res) {
   </div>`;
   box.scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('#next')?.addEventListener('click', nextPerson);
-  $('#switchPerson')?.addEventListener('click', nextPerson);
   if (!claimForm) showPromo(box, p);
 
   if (claimForm) {
