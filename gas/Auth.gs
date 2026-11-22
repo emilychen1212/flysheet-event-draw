@@ -69,6 +69,38 @@ function requireEdit_(user, ownerId) {
   if (!canEdit_(user, ownerId)) throw appError_('這是其他業務的資料，你只能檢視、不能修改', 'FORBIDDEN');
 }
 
+/* ---------- 活動權限：擁有者＋協作人員 ---------- */
+
+function isCoOwner_(user, ev) {
+  return !!(user && ev && (ev.coOwnerIds || []).indexOf(user.userId) >= 0);
+}
+
+/** 可以修改活動、看個資：管理者、擁有者、協作人員 */
+function canEditEvent_(user, ev) {
+  return !!(user && ev && (isAdmin_(user) || user.userId === ev.ownerId || isCoOwner_(user, ev)));
+}
+
+/** 可以刪除活動、修改協作名單：管理者、擁有者 */
+function canManageEvent_(user, ev) {
+  return !!(user && ev && (isAdmin_(user) || user.userId === ev.ownerId));
+}
+
+function requireEditEvent_(user, ev) {
+  if (!canEditEvent_(user, ev)) throw appError_('這個活動不是你負責的，你只能檢視、不能修改', 'FORBIDDEN');
+}
+
+function requireManageEvent_(user, ev) {
+  if (!canManageEvent_(user, ev)) throw appError_('只有活動建立者或管理者可以進行這個操作', 'FORBIDDEN');
+}
+
+var ROLE_LABELS = { admin: '管理者', sales: '業務', pm: 'PM' };
+
+/** 給「指派協作人員」用的名單（任何登入者都能讀，只含啟用中的人） */
+function apiUsersOptions_() {
+  return cachedRows_('Users').filter(function (u) { return u.status === 'active'; })
+    .map(function (u) { return { userId: u.userId, name: u.name || u.email, email: u.email, role: u.role }; });
+}
+
 /* ---------- 使用者管理（僅管理者） ---------- */
 
 function apiUsersList_() {
@@ -80,7 +112,7 @@ function apiUsersList_() {
 function apiUsersSave_(p, me) {
   var email = normEmail_(p.email);
   var name = str_(p.name, 50);
-  var role = oneOf_(p.role, ['admin', 'sales'], '');
+  var role = oneOf_(p.role, ['admin', 'sales', 'pm'], '');
   var status = oneOf_(p.status, ['active', 'disabled'], '');
   if (!role) throw appError_('請選擇角色');
   if (!status) throw appError_('請選擇狀態');

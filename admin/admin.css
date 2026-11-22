@@ -580,3 +580,22 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .stat .l { font-size: 13px; color: var(--text-muted); }
 .table a { color: var(--navy-700); text-decoration: none; }
 .table a:hover { text-decoration: underline; }
+
+/* 活動頁右上方：按鈕＋狀態 */
+.head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.status-pick { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-radius: 12px; background: #fff; border: 1.5px solid var(--navy-500); box-shadow: var(--shadow-sm); }
+.status-pick span { font-size: 13px; font-weight: 700; color: var(--navy-800); white-space: nowrap; }
+.status-pick .input { min-height: 36px; width: auto; font-weight: 500; border-color: var(--gray-200); }
+@media (max-width: 760px) { .head-right { align-items: stretch; width: 100%; } .status-pick .input { flex: 1; } }
+
+/* 協作人員勾選 */
+.chips-admin { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-a { position: relative; }
+.chip-a input { position: absolute; opacity: 0; }
+.chip-a span { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; border: 1.5px solid var(--gray-300); background: #fff; font-size: 14px; cursor: pointer; transition: all .15s; }
+.chip-a span small { font-size: 11px; color: var(--text-muted); }
+.chip-a input:checked + span { background: var(--navy-800); border-color: var(--navy-800); color: #fff; }
+.chip-a input:checked + span small { color: rgba(255,255,255,.7); }
+.chip-a input:checked + span::before { content: '✓'; font-weight: 700; }
+.chip-a input:disabled + span { cursor: default; opacity: .75; }
+.chip-a input:focus-visible + span { outline: 3px solid var(--orange-300); outline-offset: 2px; }

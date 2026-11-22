@@ -1,6 +1,6 @@
 /** 使用者管理（僅管理者） */
 import { api, cachedApi } from '../../../assets/js/api.js';
-import { $, esc, modal, toast, emptyHtml, ICON, fmtDate } from '../ui.js';
+import { $, esc, modal, toast, emptyHtml, ICON, fmtDate, roleBadge } from '../ui.js';
 
 export async function render(root, _p, app) {
   const users = await cachedApi('users.list');
@@ -16,12 +16,12 @@ export async function render(root, _p, app) {
       <tbody>${sorted.map((u) => `<tr>
         <td><b>${esc(u.name || '—')}</b>${u.userId === app.user.userId ? ' <span class="badge">你</span>' : ''}</td>
         <td class="small">${esc(u.email)}</td>
-        <td>${u.role === 'admin' ? '<span class="badge orange">管理者</span>' : '<span class="badge navy">業務</span>'}</td>
+        <td>${roleBadge(u.role)}</td>
         <td>${u.status === 'active' ? '<span class="badge dot green">啟用</span>' : '<span class="badge dot">已停用</span>'}</td>
         <td class="small muted">${fmtDate(u.createdAt)}</td>
         <td class="actions"><button class="btn sm" data-edit="${esc(u.userId)}">${ICON.edit}編輯</button></td>
       </tr>`).join('')}</tbody></table></div>` : emptyHtml({ title: '還沒有使用者' })}
-    <p class="muted small" style="margin-top:16px">・管理者：可以管理使用者、系統設定，並檢視與修改所有資料。<br>・業務：可以建立與修改自己的客戶與活動；其他業務的活動只能檢視設定與統計，看不到參與者個資。</p>`;
+    <p class="muted small" style="margin-top:16px">・管理者：可以管理使用者、系統設定，並檢視與修改所有資料。<br>・業務／PM：可以建立與修改自己的客戶與活動，也可以被指派為其他活動的協作人員；沒有負責的活動只能檢視設定與統計，看不到參與者個資。</p>`;
 
   $('#btnAdd').onclick = () => edit(null);
   root.querySelectorAll('[data-edit]').forEach((b) => {
@@ -38,7 +38,7 @@ export async function render(root, _p, app) {
         <div class="field"><label>姓名</label><input class="input" id="uName" value="${esc(u ? u.name : '')}" placeholder="例：陳小美（留空會在第一次登入時帶入 Google 名稱）"></div>
         <div class="form-grid">
           <div class="field"><label>角色</label><select class="input" id="uRole" ${isMe ? 'disabled' : ''}>
-            <option value="sales">業務</option><option value="admin">管理者</option></select></div>
+            <option value="sales">業務</option><option value="pm">PM</option><option value="admin">管理者</option></select></div>
           <div class="field"><label>狀態</label><select class="input" id="uStatus" ${isMe ? 'disabled' : ''}>
             <option value="active">啟用</option><option value="disabled">停用</option></select></div>
         </div>

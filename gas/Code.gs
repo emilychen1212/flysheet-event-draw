@@ -22,6 +22,7 @@ function routes_() {
     // 使用者與系統設定
     'users.list': { admin: true, fn: apiUsersList_ },
     'users.save': { admin: true, fn: apiUsersSave_ },
+    'users.options': { fn: apiUsersOptions_ },
     'settings.get': { fn: apiSettingsGet_ },
     'settings.save': { admin: true, fn: apiSettingsSave_ },
 

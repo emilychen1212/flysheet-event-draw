@@ -90,6 +90,13 @@ export function fmtRange(a, b) {
 /** 'yyyy-MM-dd HH:mm:ss' → datetime-local 用的 'yyyy-MM-ddTHH:mm' */
 export function toLocalInput(s) { return s ? s.slice(0, 16).replace(' ', 'T') : ''; }
 
+export const ROLES = {
+  admin: { label: '管理者', cls: 'orange' },
+  pm: { label: 'PM', cls: 'green' },
+  sales: { label: '業務', cls: 'navy' }
+};
+export const roleBadge = (r) => `<span class="badge ${(ROLES[r] || ROLES.sales).cls}">${(ROLES[r] || ROLES.sales).label}</span>`;
+
 export const STATUS = {
   draft: { label: '草稿', cls: '' },
   active: { label: '進行中', cls: 'green' },

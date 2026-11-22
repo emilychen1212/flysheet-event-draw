@@ -13,7 +13,7 @@ export function eventTable(list, app, { showClient = true } = {}) {
       <td class="small">${GAMES[e.gameType] ? GAMES[e.gameType].ico + ' ' + GAMES[e.gameType].label : ''}</td>
       <td>${badge(STATE, e.state)}</td>
       <td class="num small">${e.prizeTotal - e.prizeRemaining} / ${e.prizeTotal}</td>
-      <td class="small">${esc(e.ownerName)}${e.canEdit ? '' : ' <span class="badge" title="其他業務的活動，只能檢視">唯讀</span>'}</td>
+      <td class="small">${esc(e.ownerName)}${(e.coOwnerNames || []).length ? `<div class="muted">協作：${e.coOwnerNames.map(esc).join('、')}</div>` : ''}${e.canEdit ? '' : ' <span class="badge" title="不是你負責的活動，只能檢視">唯讀</span>'}</td>
     </tr>`).join('')}</tbody></table></div>`;
 }
 
@@ -25,13 +25,13 @@ export async function render(root, _p, app) {
 
   root.innerHTML = `
     <div class="page-head">
-      <div><h1>專案活動</h1><div class="sub">其他業務的活動只能檢視，不能修改</div></div>
+      <div><h1>專案活動</h1><div class="sub">不是你負責的活動只能檢視，不能修改</div></div>
       <div class="actions"><a class="btn accent" href="#/events/new">${ICON.plus}建立活動</a></div>
     </div>
     ${events.length ? `<div class="filters">
       <input class="input search" id="fq" placeholder="搜尋活動名稱或代碼">
       <select class="input" id="fOwner">
-        <option value="me">我的活動</option><option value="">全部業務</option>
+        <option value="me">我負責的活動（含協作）</option><option value="">全部業務</option>
         ${owners.filter(([id]) => id !== app.user.userId).map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('')}
       </select>
       <select class="input" id="fClient"><option value="">全部客戶</option>${clients.map(([id, n]) => `<option value="${esc(id)}">${esc(n)}</option>`).join('')}</select>
@@ -46,7 +46,7 @@ export async function render(root, _p, app) {
       (!f.q || (e.title + ' ' + e.eventCode).toLowerCase().includes(f.q)) &&
       (!f.client || e.clientId === f.client) &&
       (!f.status || e.status === f.status) &&
-      (!f.owner || (f.owner === 'me' ? e.ownerId === app.user.userId : e.ownerId === f.owner)));
+      (!f.owner || (f.owner === 'me' ? e.isMine : e.ownerId === f.owner)));
     $('#list').innerHTML = !events.length
       ? emptyHtml({ title: '還沒有任何活動', text: '建立第一個擺攤活動，設定獎池與遊戲，就能拿到抽獎 QR code', action: `<a class="btn accent" href="#/events/new">${ICON.plus}建立活動</a>` })
       : list.length ? eventTable(list, app) : '<div class="empty"><p>沒有符合條件的活動</p></div>';

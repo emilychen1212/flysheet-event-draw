@@ -9,7 +9,7 @@ var SCHEMA = {
   Clients: ['clientId', 'ownerId', 'name', 'type', 'note', 'createdAt', 'updatedAt'],
   Events: ['eventId', 'eventCode', 'ownerId', 'clientId', 'title', 'subtitle', 'clientDisplayName',
     'startAt', 'endAt', 'status', 'gameType', 'drawMode', 'regMode', 'dailyLimit', 'regFields',
-    'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt'],
+    'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt', 'coOwnerIds'],
   Prizes: ['prizeId', 'eventId', 'name', 'quantity', 'remaining', 'isLose', 'isSpecial', 'color',
     'sortOrder', 'createdAt', 'updatedAt', 'label'],
   Participants: ['participantId', 'eventId', 'name', 'email', 'phone', 'organization', 'identity',
@@ -18,7 +18,7 @@ var SCHEMA = {
   Draws: ['drawId', 'eventId', 'participantId', 'prizeId', 'prizeName', 'isLose', 'drawnAt',
     'deviceType', 'isTest', 'createdAt', 'updatedAt'],
   Leads: ['leadId', 'eventId', 'participantId', 'type', 'productName', 'name', 'organization',
-    'email', 'phone', 'note', 'isTest', 'createdAt', 'updatedAt'],
+    'email', 'phone', 'note', 'isTest', 'createdAt', 'updatedAt', 'productOwned', 'message'],
   Settings: ['key', 'value', 'createdAt', 'updatedAt']
 };
 
@@ -30,9 +30,9 @@ var ID_FIELD = {
 var NUM_FIELDS = { quantity: 1, remaining: 1, sortOrder: 1, dailyLimit: 1 };
 var BOOL_FIELDS = {
   promoEnabled: 1, isTestMode: 1, isLose: 1, isSpecial: 1, privacyConsent: 1,
-  wantsProductInfo: 1, isTest: 1
+  wantsProductInfo: 1, isTest: 1, productOwned: 1
 };
-var JSON_FIELDS = { regFields: 1, promoProducts: 1, customAnswers: 1 };
+var JSON_FIELDS = { regFields: 1, promoProducts: 1, customAnswers: 1, coOwnerIds: 1 };
 
 var TABLES_ = {};
 

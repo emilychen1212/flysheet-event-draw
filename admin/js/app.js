@@ -1,6 +1,6 @@
 /** 後台主程式：登入、版面、路由 */
 import { api, cachedApi, login, logout, getToken, savedUser, saveUser } from '../../assets/js/api.js';
-import { $, esc, toastErr, loadingHtml, ICON } from './ui.js';
+import { $, esc, toastErr, loadingHtml, ICON, roleBadge } from './ui.js';
 
 const cfg = window.APP_CONFIG || {};
 const root = document.getElementById('root');
@@ -99,7 +99,7 @@ function renderShell() {
         <a href="#/settings" data-nav="settings">${ICON.settings}系統設定</a>` : ''}
       </nav>
       <div class="me">
-        <div class="who">${esc(u.name || '使用者')} <span class="badge ${u.role === 'admin' ? 'orange' : 'navy'}" style="margin-left:4px">${u.role === 'admin' ? '管理者' : '業務'}</span></div>
+        <div class="who">${esc(u.name || '使用者')} ${roleBadge(u.role)}</div>
         <div class="mail">${esc(u.email)}</div>
         <button class="btn sm on-dark" id="btnLogout">${ICON.logout}登出</button>
       </div>

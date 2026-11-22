@@ -15,7 +15,7 @@ function card(e) {
 }
 
 export async function render(root, _p, app) {
-  const events = (await cachedApi('events.list')).filter((e) => e.ownerId === app.user.userId);
+  const events = (await cachedApi('events.list')).filter((e) => e.isMine);
   const now = new Date().toISOString().slice(0, 10);
   const live = events.filter((e) => e.state === 'open' || (e.status === 'active' && e.state === 'soldOut'));
   const upcoming = events.filter((e) => !live.includes(e) && e.status !== 'ended' && e.endAt.slice(0, 10) >= now)

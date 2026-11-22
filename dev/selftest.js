@@ -61,7 +61,8 @@ check('不能用別人的客戶建活動', !call('events.save', { event: baseEve
 
 function baseEvent(code, clientId, extra) {
   return Object.assign({ eventCode: code, clientId, title: '實證醫學推廣', startAt: '2026-01-01T09:00', endAt: '2099-12-31T18:00',
-    status: 'active', gameType: 'wheel', drawMode: 'self', regMode: 'before', dailyLimit: 2 }, extra || {});
+    status: 'active', gameType: 'wheel', drawMode: 'self', regMode: 'before', dailyLimit: 2,
+    promoProducts: [{ name: 'UpToDate' }, { name: 'JoVE', owned: true }, { name: 'ClinicalKey' }] }, extra || {});
 }
 function prizes1() {
   return [{ name: '保溫杯', quantity: 1, isSpecial: true }, { name: '銘謝惠顧', quantity: 0, isLose: true }];
@@ -163,11 +164,35 @@ check('草稿活動可以刪除', ok('events.delete', { eventId: cp.event.eventI
 
 console.log('\n[潛在客戶]');
 check('沒選產品不能送出', !call('public.submitLead', { eventCode: 'EBM27', type: 'trial', name: '王小明', email: 'ming@gmail.com' }).ok);
-ok('public.submitLead', { eventCode: 'EBM27', type: 'trial', productName: 'UpToDate、JoVE', name: '王小明', email: 'ming@gmail.com', organization: '臺大' });
-ok('public.submitLead', { eventCode: 'EBM27', type: 'info', productName: 'ClinicalKey', name: '林護理師', phone: '0912000111' });
+check('不在推廣清單的產品不能送出', !call('public.submitLead', { eventCode: 'EBM27', type: 'info', productName: '亂填', name: '王小明', email: 'ming@gmail.com' }).ok);
+check('已購買的產品不能選「試用」', !call('public.submitLead', { eventCode: 'EBM27', type: 'trial', productName: 'JoVE', name: '王小明', email: 'ming@gmail.com' }).ok);
+check('尚未購買的產品不能選「教育訓練」', !call('public.submitLead', { eventCode: 'EBM27', type: 'training', productName: 'UpToDate', name: '王小明', email: 'ming@gmail.com' }).ok);
+check('選「其他」要寫說明', !call('public.submitLead', { eventCode: 'EBM27', type: 'other', productName: 'UpToDate', name: '王小明', email: 'ming@gmail.com' }).ok);
+ok('public.submitLead', { eventCode: 'EBM27', type: 'recommend', productName: 'UpToDate', message: '臨床很需要', name: '王小明', email: 'ming@gmail.com', organization: '臺大' });
+ok('public.submitLead', { eventCode: 'EBM27', type: 'training', productName: 'JoVE', name: '林護理師', phone: '0912000111' });
 const myLeads = ok('leads.list', {}, amy.token);
 check('擁有者看得到自己活動的潛在客戶（不含測試資料）', myLeads.length === 2 && myLeads.every((l) => l.eventCode === 'EBM27'), myLeads.length);
+check('名單帶出「已購買」與推薦的話', myLeads.some((l) => l.productOwned && l.type === 'training') && myLeads.some((l) => !l.productOwned && l.message === '臨床很需要'));
+
 check('其他業務看不到', ok('leads.list', {}, ben.token).length === 0);
+
+console.log('\n[協作人員與 PM]');
+ok('users.save', { email: 'pm@example.com', name: 'Pat', role: 'pm', status: 'active' }, A);
+const pm = ok('auth.login', { idToken: 'dev:pm@example.com' });
+check('PM 角色可以登入', pm.user.role === 'pm');
+check('PM 不能管理使用者', call('users.list', {}, pm.token).code === 'FORBIDDEN');
+check('任何登入者都能讀可指派名單', ok('users.options', {}, pm.token).length >= 3);
+check('PM 預設不能改別人的活動', call('events.clearTest', { eventId: e1.event.eventId }, pm.token).code === 'FORBIDDEN');
+check('PM 預設看不到別人活動的名單', ok('leads.list', {}, pm.token).length === 0);
+const full = ok('events.get', { eventId: e1.event.eventId }, amy.token);
+const withCo = ok('events.save', { event: Object.assign({}, full.event, { coOwnerIds: [pm.user.userId, ben.user.userId, 'nobody', amy.user.userId] }), prizes: full.prizes }, amy.token);
+check('指派協作：無效的人、擁有者自己會被排除', JSON.stringify(withCo.event.coOwnerIds.sort()) === JSON.stringify([pm.user.userId, ben.user.userId].sort()), withCo.event.coOwnerIds);
+check('協作人員可以修改活動', call('events.save', { event: Object.assign({}, withCo.event, { subtitle: 'PM 改的' }), prizes: withCo.prizes }, pm.token).ok);
+check('協作人員改不了協作名單', ok('events.get', { eventId: e1.event.eventId }, pm.token).event.coOwnerIds.length === 2 &&
+  (call('events.save', { event: Object.assign({}, withCo.event, { coOwnerIds: [] }), prizes: withCo.prizes }, pm.token), ok('events.get', { eventId: e1.event.eventId }, amy.token).event.coOwnerIds.length === 2));
+check('協作人員看得到名單', ok('leads.list', {}, pm.token).length === 2);
+check('協作人員不能刪除活動', call('events.delete', { eventId: e1.event.eventId }, pm.token).code === 'FORBIDDEN');
+check('列表標示是我的活動', ok('events.list', {}, pm.token).find((e) => e.eventId === e1.event.eventId).isMine === true);
 check('管理者看得到全部', ok('leads.list', {}, A).length === 2);
 check('未登入不能讀名單', call('leads.list', {}).code === 'AUTH');
 

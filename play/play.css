@@ -251,3 +251,19 @@ textarea.p-input { min-height: 80px; resize: vertical; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* 推廣頁：每個產品一個按鈕 */
+.p-product { display: flex; flex-direction: column; gap: 4px; }
+.p-product-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.p-product .tag { flex: none; font-size: 12px; font-weight: 700; color: var(--green-600); background: var(--green-100); padding: 2px 9px; border-radius: 99px; }
+.p-product.owned { background: #f4faf6; border-color: #cfe8d9; }
+.p-product .p-done { margin-top: 8px; padding: 8px; font-size: 13.5px; }
+.p-product .p-btn.sm { margin-top: 10px; min-height: 42px; font-size: 15px; letter-spacing: .04em; }
+.p-options { display: grid; gap: 8px; }
+.p-opt { position: relative; cursor: pointer; }
+.p-opt input { position: absolute; opacity: 0; }
+.p-opt span { display: block; padding: 11px 14px 11px 40px; border: 1.5px solid var(--gray-200); border-radius: 12px; background: var(--gray-50); font-size: 15px; transition: all .15s; position: relative; }
+.p-opt span::before { content: ''; position: absolute; left: 14px; top: 50%; width: 16px; height: 16px; margin-top: -8px; border-radius: 50%; border: 2px solid var(--gray-300); background: #fff; }
+.p-opt input:checked + span { border-color: var(--accent); background: #fffaf6; font-weight: 500; }
+.p-opt input:checked + span::before { border-color: var(--accent); box-shadow: inset 0 0 0 3px #fff; background: var(--accent); }
+.p-opt input:focus-visible + span { outline: 3px solid var(--orange-300); outline-offset: 2px; }

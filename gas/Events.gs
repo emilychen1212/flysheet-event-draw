@@ -5,7 +5,7 @@ var REG_FIELD_KEYS = ['name', 'email', 'phone', 'organization', 'identity'];
 
 var EVENT_FIELDS = ['eventId', 'eventCode', 'ownerId', 'clientId', 'title', 'subtitle', 'clientDisplayName',
   'startAt', 'endAt', 'status', 'gameType', 'drawMode', 'regMode', 'dailyLimit', 'regFields',
-  'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt'];
+  'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt', 'coOwnerIds'];
 
 var PRIZE_FIELDS = ['prizeId', 'eventId', 'name', 'label', 'quantity', 'remaining', 'isLose', 'isSpecial', 'color', 'sortOrder'];
 
@@ -69,7 +69,7 @@ function cleanPromoProducts_(list) {
   return (list || []).slice(0, 20).map(function (x) {
     var url = str_(x && x.url, 500);
     if (url && !/^https?:\/\//i.test(url)) throw appError_('產品連結要以 http:// 或 https:// 開頭：' + url);
-    return { name: str_(x && x.name, 100), intro: str_(x && x.intro, 200), url: url };
+    return { name: str_(x && x.name, 100), intro: str_(x && x.intro, 200), url: url, owned: bool_(x && x.owned) };
   }).filter(function (x) { return x.name; });
 }
 
@@ -122,6 +122,16 @@ function cleanEvent_(p, existing, user) {
   ev.promoProducts = cleanPromoProducts_(p.promoProducts);
   ev.soundDefault = oneOf_(p.soundDefault, ['on', 'off'], 'on');
   ev.isTestMode = bool_(p.isTestMode);
+  // 協作人員：只有擁有者／管理者能改，協作人員自己存檔時保留原名單
+  if (!existing || canManageEvent_(user, existing)) {
+    var valid = {};
+    cachedRows_('Users').forEach(function (u) { valid[u.userId] = 1; });
+    var seen = {};
+    ev.coOwnerIds = (Array.isArray(p.coOwnerIds) ? p.coOwnerIds : []).map(function (x) { return str_(x, 20); })
+      .filter(function (id) { if (!valid[id] || id === ownerId || seen[id]) return false; seen[id] = 1; return true; }).slice(0, 10);
+  } else {
+    ev.coOwnerIds = existing.coOwnerIds || [];
+  }
   return ev;
 }
 
@@ -183,7 +193,10 @@ function syncPrizes_(eventId, list) {
 
 function eventOut_(ev, user, extra) {
   var out = pick_(ev, EVENT_FIELDS);
-  out.canEdit = canEdit_(user, ev.ownerId);
+  out.coOwnerIds = ev.coOwnerIds || [];
+  out.canEdit = canEditEvent_(user, ev);
+  out.canManage = canManageEvent_(user, ev);
+  out.isMine = user.userId === ev.ownerId || isCoOwner_(user, ev);
   if (extra) Object.keys(extra).forEach(function (k) { out[k] = extra[k]; });
   return out;
 }
@@ -207,6 +220,7 @@ function apiEventsList_(p, user) {
     var ds = draws.filter(function (d) { return d.eventId === ev.eventId; });
     return eventOut_(ev, user, {
       ownerName: users[ev.ownerId] || '',
+      coOwnerNames: (ev.coOwnerIds || []).map(function (id) { return users[id]; }).filter(String),
       clientName: clients[ev.clientId] || '',
       state: eventState_(ev, ps),
       prizeTotal: real.reduce(function (s, x) { return s + x.quantity; }, 0),
@@ -226,6 +240,7 @@ function apiEventsGet_(p, user) {
   return {
     event: eventOut_(ev, user, {
       ownerName: users[ev.ownerId] || '',
+      coOwners: (ev.coOwnerIds || []).map(function (id) { return { userId: id, name: users[id] || '' }; }),
       clientName: client ? client.name : '',
       state: eventState_(ev, prizes),
       testDrawCount: where_('Draws', function (d) { return d.eventId === ev.eventId && d.isTest; }).length
@@ -246,7 +261,7 @@ function apiEventsSave_(p, user) {
     var input = p.event || {};
     var existing = input.eventId ? find_('Events', input.eventId) : null;
     if (input.eventId && !existing) throw appError_('找不到這個活動', 'NOT_FOUND');
-    if (existing) requireEdit_(user, existing.ownerId);
+    if (existing) requireEditEvent_(user, existing);
     var ev = cleanEvent_(input, existing, user);
     var prizes = cleanPrizes_(p.prizes);
     if (existing) assertPrizeRemovable_(existing.eventId, prizes);
@@ -269,7 +284,7 @@ function apiEventsCopy_(p, user) {
   return withLock_(function () {
     var src = find_('Events', p.eventId);
     if (!src) throw appError_('找不到要複製的活動', 'NOT_FOUND');
-    requireEdit_(user, src.ownerId);
+    requireEditEvent_(user, src);
     var code = cleanEventCode_(p.eventCode);
     if (isCodeTaken_(code, '')) throw appError_('活動代碼「' + code + '」已被使用，請換一個');
     var copy = pick_(src, EVENT_FIELDS);
@@ -294,7 +309,7 @@ function apiEventsDelete_(p, user) {
   return withLock_(function () {
     var ev = find_('Events', p.eventId);
     if (!ev) throw appError_('找不到這個活動', 'NOT_FOUND');
-    requireEdit_(user, ev.ownerId);
+    requireManageEvent_(user, ev);
     if (ev.status !== 'draft') throw appError_('只能刪除「草稿」狀態的活動；進行過的活動請改成「已結束」');
     var mine = function (r) { return r.eventId === ev.eventId; };
     if (where_('Draws', function (d) { return mine(d) && !d.isTest; }).length) {
@@ -315,7 +330,7 @@ function apiEventsClearTest_(p, user) {
   return withLock_(function () {
     var ev = find_('Events', p.eventId);
     if (!ev) throw appError_('找不到這個活動', 'NOT_FOUND');
-    requireEdit_(user, ev.ownerId);
+    requireEditEvent_(user, ev);
     var isTestOf = function (r) { return r.eventId === ev.eventId && r.isTest; };
     var draws = removeWhere_('Draws', isTestOf);
     var back = {};

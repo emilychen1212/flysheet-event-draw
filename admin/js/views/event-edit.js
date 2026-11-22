@@ -21,10 +21,11 @@ function defaultTimes() {
 
 export async function render(root, [eventId], app) {
   const isNew = !eventId;
-  const [settings, clientsAll, loaded] = await Promise.all([
+  const [settings, clientsAll, loaded, people] = await Promise.all([
     app.settings(),
     cachedApi('clients.list'),
-    isNew ? null : cachedApi('events.get', { eventId })
+    isNew ? null : cachedApi('events.get', { eventId }),
+    cachedApi('users.options', {}, 300000).catch(() => [])
   ]);
 
   let ev, prizes;
@@ -37,7 +38,7 @@ export async function render(root, [eventId], app) {
       eventCode: '', clientId: app.query.get('client') || '', title: '', subtitle: '', clientDisplayName: '',
       startAt: t.startAt, endAt: t.endAt, status: 'draft', gameType: 'wheel', drawMode: 'self', regMode: 'before',
       dailyLimit: 1, regFields: settings.defaultRegFields, promoEnabled: false, promoProducts: [], soundDefault: 'on',
-      isTestMode: false, canEdit: true, ownerId: app.user.userId
+      isTestMode: false, canEdit: true, canManage: true, ownerId: app.user.userId, coOwnerIds: []
     };
     prizes = [
       { name: '', quantity: 10, isLose: false, isSpecial: false, color: PALETTE[0] },
@@ -47,6 +48,12 @@ export async function render(root, [eventId], app) {
   const ro = !ev.canEdit;
   const dis = ro ? 'disabled' : '';
   const ownerClients = clientsAll.filter((c) => c.ownerId === ev.ownerId);
+  // 協作人員沒有擁有者的客戶清單，至少把目前的客戶放進選單
+  if (ev.clientId && !ownerClients.some((c) => c.clientId === ev.clientId)) ownerClients.push({ clientId: ev.clientId, name: ev.clientName || '（目前客戶）' });
+  const manage = !!ev.canManage;
+  const coIds = new Set(ev.coOwnerIds || []);
+  const ROLE = { admin: '管理者', sales: '業務', pm: 'PM' };
+  const others = (people || []).filter((u) => u.userId !== ev.ownerId);
 
   root.innerHTML = `
     <div class="crumb"><a href="#/events">專案活動</a> ／</div>
@@ -57,20 +64,26 @@ export async function render(root, [eventId], app) {
         : `<div class="sub" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <span style="font-family:var(--font-mono);letter-spacing:.05em">${esc(ev.eventCode)}</span>
             ${badge(STATE, ev.state)} ${ev.isTestMode ? '<span class="badge yellow">測試模式</span>' : ''}
-            <span>${esc(ev.clientName)}・${esc(ev.ownerName)}</span></div>`}
+            <span>${esc(ev.clientName)}・${esc(ev.ownerName)}${(ev.coOwners || []).length ? `（協作：${ev.coOwners.map((c) => esc(c.name)).join('、')}）` : ''}</span></div>`}
       </div>
-      ${isNew ? '' : `<div class="actions">
-        ${ro ? '' : `<button class="btn" id="btnCopy">${ICON.copy}複製活動</button>`}
-        <button type="button" class="btn" data-jump="publish">${ICON.qr}網址與 QR code</button>
-        ${!ro && ev.status === 'draft' ? `<button class="btn danger" id="btnDelete">${ICON.trash}刪除</button>` : ''}
-      </div>`}
+      <div class="head-right">
+        ${isNew ? '' : `<div class="actions">
+          ${ro ? '' : `<button class="btn" id="btnCopy">${ICON.copy}複製活動</button>`}
+          <button type="button" class="btn" data-jump="publish">${ICON.qr}網址與 QR code</button>
+          ${manage && ev.status === 'draft' ? `<button class="btn danger" id="btnDelete">${ICON.trash}刪除</button>` : ''}
+        </div>`}
+        <label class="status-pick"><span>活動狀態</span>
+          <select class="input" name="status" form="form" ${dis}>
+            <option value="draft">📝 草稿（前台不開放）</option><option value="active">🟢 進行中</option><option value="ended">🏁 已結束</option>
+          </select></label>
+      </div>
     </div>
 
     ${ro ? `<div class="readonly-bar">👀 這是 <b>${esc(ev.ownerName)}</b> 的活動，你可以檢視設定，但不能修改。</div>` : ''}
 
     <nav class="section-nav">
       <a data-jump="s-basic">基本資訊</a><a data-jump="s-mode">抽獎方式</a><a data-jump="s-game">遊戲形式</a><a data-jump="s-prize">獎池</a>
-      <a data-jump="s-reg">登記設定</a><a data-jump="s-promo">推廣頁</a><a data-jump="s-test">測試模式</a>${isNew ? '' : '<a data-jump="publish">發布</a>'}
+      <a data-jump="s-reg">登記設定</a><a data-jump="s-promo">推廣產品</a><a data-jump="s-test">測試模式</a>${isNew ? '' : '<a data-jump="publish">發布</a>'}
     </nav>
 
     <form id="form" autocomplete="off">
@@ -79,11 +92,11 @@ export async function render(root, [eventId], app) {
       <div class="form-grid">
         <div class="field"><label>客戶<span class="req">*</span></label>
           <div style="display:flex;gap:8px">
-            <select class="input" name="clientId" ${dis}>
+            <select class="input" name="clientId" ${manage ? dis : 'disabled'}>
               <option value="">請選擇客戶</option>
               ${ownerClients.map((c) => `<option value="${esc(c.clientId)}" data-name="${esc(c.name)}">${esc(c.name)}</option>`).join('')}
             </select>
-            ${ro ? '' : `<button type="button" class="btn icon" id="btnNewClient" title="新增客戶">${ICON.plus}</button>`}
+            ${ro || !manage ? '' : `<button type="button" class="btn icon" id="btnNewClient" title="新增客戶">${ICON.plus}</button>`}
           </div></div>
         <div class="field"><label>活動代碼<span class="req">*</span></label>
           <input class="input mono" name="eventCode" maxlength="20" placeholder="例：EBM27" ${dis}>
@@ -92,17 +105,17 @@ export async function render(root, [eventId], app) {
           <input class="input" name="title" maxlength="100" placeholder="例：實證醫學工具大集合　轉轉樂" ${dis}></div>
         <div class="field span-2"><label>說明</label>
           <input class="input" name="subtitle" maxlength="300" placeholder="例：完成登記就能抽，好禮等你帶回家！" ${dis}></div>
-        <div class="field"><label>前台顯示的客戶名</label>
+        <div class="field span-2"><label>前台顯示的客戶名</label>
           <input class="input" name="clientDisplayName" maxlength="100" placeholder="留空則使用客戶名稱" ${dis}>
           <div class="hint">例：「臺大醫學院圖書館 × 飛資得」</div></div>
-        <div class="field"><label>狀態</label>
-          <select class="input" name="status" ${dis}>
-            <option value="draft">草稿（前台不開放）</option><option value="active">進行中</option><option value="ended">已結束</option>
-          </select></div>
         <div class="field"><label>開始時間<span class="req">*</span></label><input class="input" type="datetime-local" name="startAt" ${dis}></div>
         <div class="field"><label>結束時間<span class="req">*</span></label><input class="input" type="datetime-local" name="endAt" ${dis}></div>
+        <div class="field span-2"><span class="label">協作人員</span>
+          ${others.length ? `<div class="chips-admin">${others.map((u) => `<label class="check chip-a"><input type="checkbox" name="coOwner" value="${esc(u.userId)}" ${coIds.has(u.userId) ? 'checked' : ''} ${manage && !ro ? '' : 'disabled'}>
+            <span>${esc(u.name)}<small>${ROLE[u.role] || ''}</small></span></label>`).join('')}</div>` : '<div class="muted small">還沒有其他使用者</div>'}
+          <div class="hint">被指派的人可以在自己的後台看到並修改這個活動、查看名單與報表${manage ? '' : '（只有活動建立者或管理者可以修改協作人員）'}</div></div>
       </div>
-      <p class="hint muted small" style="margin:12px 0 0">前台只有在「進行中」且在起訖時間內才能抽獎。</p>
+      <p class="hint muted small" style="margin:12px 0 0">前台只有在右上方「活動狀態」為「進行中」，且在起訖時間內才能抽獎。</p>
     </section>
 
     <section class="card" id="s-mode">
@@ -160,14 +173,13 @@ export async function render(root, [eventId], app) {
     </section>
 
     <section class="card" id="s-promo">
-      <h2 class="card-title"><span><span class="num">6</span>推廣頁設定</span></h2>
-      <div id="promoOff" class="muted small">推廣頁只在「自助掃碼」時使用：參與者抽完後，可以看到推廣產品並申請試用。</div>
-      <div id="promoOn">
-        <label class="switch"><input type="checkbox" name="promoEnabled" ${dis}><span class="track"></span>抽完後顯示推廣頁</label>
-        <div id="promoBox" style="margin-top:14px">
-          <div id="promoList" style="display:grid;gap:10px"></div>
-          ${ro ? '' : `<button type="button" class="btn sm" id="addPromo" style="margin-top:10px">${ICON.plus}新增推廣產品</button>`}
-        </div>
+      <h2 class="card-title"><span><span class="num">6</span>本次推廣產品</span></h2>
+      <p class="muted small" style="margin-top:-6px">填這次活動主要推廣的產品，並標示客戶是否已購買。已購買的產品在前台會顯示「想學更多使用技巧」，尚未購買的顯示「有興趣了解更多」。</p>
+      <div id="promoList" style="display:grid;gap:10px"></div>
+      ${ro ? '' : `<button type="button" class="btn sm" id="addPromo" style="margin-top:10px">${ICON.plus}新增推廣產品</button>`}
+      <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--gray-200)">
+        <div id="promoOff" class="muted small">推廣頁只在「自助掃碼」時顯示：參與者抽完獎，可以看到這些產品並留下需求。攤位操作時清單一樣會保留。</div>
+        <div id="promoOn"><label class="switch"><input type="checkbox" name="promoEnabled" ${dis}><span class="track"></span>抽完獎後，在前台顯示推廣頁</label></div>
       </div>
     </section>
 
@@ -227,6 +239,7 @@ export async function render(root, [eventId], app) {
   };
   form.addEventListener('input', markDirty);
   form.addEventListener('change', markDirty);
+  F('status').addEventListener('change', markDirty); // 狀態選單在表單外（右上方），要另外監聽
 
   /* ---------- 抽獎方式／登記模式連動 ---------- */
   let lastDrawMode = ev.drawMode;
@@ -243,7 +256,6 @@ export async function render(root, [eventId], app) {
     $('#regBox').hidden = regMode === 'none';
     $('#promoOff').hidden = drawMode === 'self';
     $('#promoOn').hidden = drawMode !== 'self';
-    $('#promoBox').hidden = !F('promoEnabled').checked;
   };
   form.addEventListener('change', (e) => {
     if (['drawMode', 'regMode', 'promoEnabled'].includes(e.target.name)) syncModes();
@@ -388,6 +400,7 @@ export async function render(root, [eventId], app) {
     $('#promoList').innerHTML = promo.length ? promo.map((p, i) => `<div class="custom-q" data-i="${i}">
       <div class="row">
         <input class="input" data-k="name" value="${esc(p.name)}" placeholder="產品名稱，例：UpToDate" style="flex:1;min-width:160px" maxlength="100" ${dis}>
+        <div class="seg"><label><input type="radio" name="owned_${i}" data-owned="0" ${p.owned ? '' : 'checked'} ${dis}><span>尚未購買</span></label><label><input type="radio" name="owned_${i}" data-owned="1" ${p.owned ? 'checked' : ''} ${dis}><span>已購買</span></label></div>
         ${ro ? '' : `<button type="button" class="btn sm ghost" data-del title="刪除">${ICON.trash}</button>`}
       </div>
       <input class="input" data-k="intro" value="${esc(p.intro)}" placeholder="一句話介紹，例：全球臨床醫師最信賴的實證醫學工具" maxlength="200" ${dis}>
@@ -399,12 +412,16 @@ export async function render(root, [eventId], app) {
     const box = e.target.closest('[data-i]');
     if (box && e.target.dataset.k) promo[box.dataset.i][e.target.dataset.k] = e.target.value;
   });
+  $('#promoList').addEventListener('change', (e) => {
+    const box = e.target.closest('[data-i]');
+    if (box && e.target.dataset.owned !== undefined) promo[box.dataset.i].owned = e.target.dataset.owned === '1';
+  });
   $('#promoList').addEventListener('click', (e) => {
     const box = e.target.closest('[data-i]');
     if (box && e.target.closest('[data-del]')) { promo.splice(Number(box.dataset.i), 1); drawPromo(); markDirty(); }
   });
   $('#addPromo')?.addEventListener('click', () => {
-    promo.push({ name: '', intro: '', url: '' });
+    promo.push({ name: '', intro: '', url: '', owned: false });
     drawPromo(); markDirty();
     $$('#promoList [data-k=name]').pop()?.focus();
   });
@@ -429,7 +446,8 @@ export async function render(root, [eventId], app) {
       regFields: readRegFields($('#regBox')),
       promoEnabled: F('promoEnabled').checked,
       promoProducts: promo,
-      isTestMode: F('isTestMode').checked
+      isTestMode: F('isTestMode').checked,
+      coOwnerIds: $$('input[name=coOwner]:checked', form).map((i) => i.value)
     },
     prizes: prizeState.map((p) => ({
       prizeId: p.prizeId || '', label: (p.label || '').trim(), name: p.name.trim() || (p.isLose ? '銘謝惠顧' : ''), quantity: p.quantity === '' ? -1 : p.quantity,

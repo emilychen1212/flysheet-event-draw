@@ -238,15 +238,27 @@ function apiPublicDraw_(p) {
   });
 }
 
-/** 推廣頁：申請試用／了解產品資訊 */
+/** 推廣表單可以選的項目（尚未購買／已購買的產品不同） */
+var LEAD_TYPES = {
+  notOwned: ['recommend', 'info', 'trial', 'other'],
+  owned: ['recommend', 'training', 'info', 'other']
+};
+
+/** 推廣頁：有興趣了解更多／想學更多使用技巧 */
 function apiPublicSubmitLead_(p) {
   var ev = findEventByCode_(p.eventCode);
   if (!ev) throw appError_('找不到這個活動', 'NOT_FOUND');
   if (ev.status === 'draft' && !ev.isTestMode) throw appError_(STATE_MESSAGES.draft);
+  var productName = str_(p.productName, 100);
+  var product = (ev.promoProducts || []).filter(function (x) { return x.name === productName; })[0];
+  if (!product) throw appError_('請選擇想了解的產品');
+  var owned = !!product.owned;
   var lead = {
     eventId: ev.eventId,
-    type: oneOf_(p.type, ['trial', 'info'], ''),
-    productName: str_(p.productName, 300),
+    type: oneOf_(p.type, owned ? LEAD_TYPES.owned : LEAD_TYPES.notOwned, ''),
+    productName: product.name,
+    productOwned: owned,
+    message: str_(p.message, 500),
     name: str_(p.name, 50),
     organization: str_(p.organization, 100),
     email: normEmail_(p.email),
@@ -254,8 +266,8 @@ function apiPublicSubmitLead_(p) {
     note: str_(p.note, 1000),
     isTest: ev.isTestMode
   };
-  if (!lead.type) throw appError_('請選擇申請類型');
-  if (!lead.productName) throw appError_('請選擇想了解的產品');
+  if (!lead.type) throw appError_('請選擇您想要的協助');
+  if (lead.type === 'other' && !lead.message) throw appError_('請簡單說明您的需求');
   if (!lead.name) throw appError_('請填寫姓名');
   if (!lead.email && !lead.phone) throw appError_('請至少留下 Email 或手機，方便業務與您聯繫');
   if (lead.email && !isEmail_(lead.email)) throw appError_('Email 格式不正確');

@@ -3,7 +3,7 @@
  */
 function apiLeadsList_(p, user) {
   var events = {};
-  all_('Events').forEach(function (e) { if (canEdit_(user, e.ownerId)) events[e.eventId] = e; });
+  all_('Events').forEach(function (e) { if (canEditEvent_(user, e)) events[e.eventId] = e; });
   var clients = {};
   all_('Clients').forEach(function (c) { clients[c.clientId] = c.name; });
   var users = userNameMap_();
@@ -15,6 +15,7 @@ function apiLeadsList_(p, user) {
       var person = l.participantId ? people[l.participantId] : null;
       return {
         leadId: l.leadId, createdAt: l.createdAt, type: l.type, productName: l.productName,
+        productOwned: l.productOwned, message: l.message,
         name: l.name, organization: l.organization, email: l.email, phone: l.phone, note: l.note,
         identity: person ? (person.identity === '其他' && person.identityOther ? '其他：' + person.identityOther : person.identity) : '',
         eventId: ev.eventId, eventCode: ev.eventCode, eventTitle: ev.title,
