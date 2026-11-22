@@ -267,3 +267,7 @@ textarea.p-input { min-height: 80px; resize: vertical; }
 .p-opt input:checked + span { border-color: var(--accent); background: #fffaf6; font-weight: 500; }
 .p-opt input:checked + span::before { border-color: var(--accent); box-shadow: inset 0 0 0 3px #fff; background: var(--accent); }
 .p-opt input:focus-visible + span { outline: 3px solid var(--orange-300); outline-offset: 2px; }
+
+/* 中獎後登記：提醒填完資料再領獎 */
+.claim-tip { margin: 10px auto 4px; padding: 10px 14px; border-radius: 12px; background: var(--orange-100); color: var(--orange-600);
+  font-weight: 700; font-size: 15.5px; line-height: 1.5; border: 1.5px dashed var(--orange-300); animation: p-rise .4s var(--ease-bounce) .2s both; }

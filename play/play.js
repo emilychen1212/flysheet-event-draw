@@ -315,6 +315,7 @@ function showResult(res) {
   box.innerHTML = `<div class="panel p-result ${p.isLose ? 'lose' : ''}">
     ${kicker ? `<div class="kicker">${kicker}</div>` : ''}
     <div class="prize">${esc(p.isLose ? p.name || '銘謝惠顧' : p.name)}</div>
+    ${claimForm ? '<p class="claim-tip">🎁 記得填寫完資料，向工作人員領取禮物唷！</p>' : ''}
     <p class="note">${claimForm ? '請填寫以下資料，方便我們通知領獎' : note}</p>
     ${claimForm ? `<div style="text-align:left">${regFormHtml({ claim: true })}</div>` : `<div class="actions">${actions}</div>`}
   </div>`;
