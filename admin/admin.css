@@ -578,3 +578,5 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .stat { display: flex; flex-direction: column; gap: 2px; }
 .stat .v { font: 700 28px/1.1 var(--font-display); color: var(--navy-800); }
 .stat .l { font-size: 13px; color: var(--text-muted); }
+.table a { color: var(--navy-700); text-decoration: none; }
+.table a:hover { text-decoration: underline; }

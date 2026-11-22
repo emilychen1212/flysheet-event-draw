@@ -246,7 +246,7 @@ function apiPublicSubmitLead_(p) {
   var lead = {
     eventId: ev.eventId,
     type: oneOf_(p.type, ['trial', 'info'], ''),
-    productName: str_(p.productName, 100),
+    productName: str_(p.productName, 300),
     name: str_(p.name, 50),
     organization: str_(p.organization, 100),
     email: normEmail_(p.email),
@@ -255,6 +255,7 @@ function apiPublicSubmitLead_(p) {
     isTest: ev.isTestMode
   };
   if (!lead.type) throw appError_('請選擇申請類型');
+  if (!lead.productName) throw appError_('請選擇想了解的產品');
   if (!lead.name) throw appError_('請填寫姓名');
   if (!lead.email && !lead.phone) throw appError_('請至少留下 Email 或手機，方便業務與您聯繫');
   if (lead.email && !isEmail_(lead.email)) throw appError_('Email 格式不正確');

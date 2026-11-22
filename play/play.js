@@ -8,6 +8,7 @@
 import { api } from '../assets/js/api.js';
 import { sfx, setMuted, isMuted, unlock } from './sound.js';
 import { celebrate } from './celebrate.js';
+import { renderPromo } from './promo.js';
 
 const params = new URLSearchParams(location.search);
 const CODE = (params.get('event') || '').trim().toUpperCase();
@@ -320,6 +321,7 @@ function showResult(res) {
   box.scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('#next')?.addEventListener('click', nextPerson);
   $('#again')?.addEventListener('click', () => { if (S.game.reset) S.game.reset(); showStartButton(); });
+  if (!claimForm) showPromo(box, p);
 
   if (claimForm) {
     S.playing = true; // 還沒填完領獎資料，離開前提醒
@@ -332,8 +334,19 @@ function showResult(res) {
         <p class="note">${booth ? '請向工作人員領取獎品' : '請出示此畫面向工作人員領獎'}</p>
         <div class="actions">${booth ? '<button class="p-btn navy" id="next">下一位</button>' : ''}</div>`;
       $('#next')?.addEventListener('click', nextPerson);
+      showPromo(box, p);
     });
   }
+}
+
+/** 自助掃碼＋有開推廣頁：在結果下方顯示推廣產品 */
+function showPromo(box, prize) {
+  const ev = S.ev;
+  if (ev.drawMode !== 'self' || !ev.promoEnabled || !(ev.promoProducts || []).length) return;
+  renderPromo(box, {
+    eventCode: CODE, products: ev.promoProducts, won: !prize.isLose, prizeName: prize.name,
+    reg: S.lastReg, participantId: S.participantId
+  });
 }
 
 function nextPerson() {
@@ -366,11 +379,11 @@ function nextPerson() {
     return bareMessage('📡', '連線失敗', e.message + '　請重新整理頁面再試一次');
   }
   S.ev = S.data.event;
-  renderShell();
   if (VIEW === 'screen') {
-    stage().innerHTML = '<div class="panel p-msg"><div class="big">📺</div><h2>展示頁建置中</h2><p>攤位大螢幕的展示頁會在第 5 階段完成</p></div>';
-    return;
+    const { renderScreen } = await import('./screen.js');
+    return renderScreen(root, S.data, CODE);
   }
+  renderShell();
   if (S.data.state !== 'open') return showState(S.data.state, S.data.stateMessage);
   if (S.ev.regMode === 'before') showRegister();
   else showGame();

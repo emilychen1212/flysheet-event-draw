@@ -37,7 +37,10 @@ function routes_() {
     'events.save': { fn: apiEventsSave_ },
     'events.copy': { fn: apiEventsCopy_ },
     'events.delete': { fn: apiEventsDelete_ },
-    'events.clearTest': { fn: apiEventsClearTest_ }
+    'events.clearTest': { fn: apiEventsClearTest_ },
+
+    // 潛在客戶
+    'leads.list': { fn: apiLeadsList_ }
   };
 }
 

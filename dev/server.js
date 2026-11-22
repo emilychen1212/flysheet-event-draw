@@ -38,8 +38,13 @@ if (process.env.SEED !== '0') {
   call('clients.save', { name: '馬偕紀念醫院', type: '醫院' }, admin);
   call('events.save', { event: { eventCode: 'EBM27', clientId: c.clientId, title: '實證醫學工具大集合　轉轉樂', subtitle: '完成登記就能抽，好禮帶回家！',
     clientDisplayName: '臺大醫學院圖書館 × 飛資得', startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active',
-    gameType: 'wheel', drawMode: 'self', regMode: 'before', dailyLimit: 2 },
+    gameType: 'wheel', drawMode: 'self', regMode: 'before', dailyLimit: 2, promoEnabled: true,
+    promoProducts: [{ name: 'UpToDate', intro: '全球臨床醫師最信賴的實證醫學臨床決策工具', url: 'https://www.wolterskluwer.com/en/solutions/uptodate' },
+      { name: 'JoVE', intro: '實驗操作影片期刊，看影片學實驗步驟', url: 'https://www.jove.com/' },
+      { name: 'ClinicalKey', intro: '醫學電子書、期刊與臨床資訊一站搜尋', url: '' }] },
     prizes: [{ label: '頭獎', name: '保溫杯', quantity: 5, isSpecial: true }, { label: 'JoVE 影片', name: '一個月體驗', quantity: 10 }, { label: '電子書', name: 'Thieme 電子書', quantity: 10 }, { label: '資料庫', name: 'UpToDate 試用', quantity: 10 }, { label: '精美好禮', name: '帆布袋', quantity: 20 }, { label: '幸運獎', name: '貼紙組', quantity: 50 }, { name: '再接再厲', quantity: 30, isLose: true }] }, sales);
+  call('public.submitLead', { eventCode: 'EBM27', type: 'trial', productName: 'UpToDate', name: '王小明', organization: '臺大醫院 內科部', email: 'ming@example.com', note: '想試用一個月' });
+  call('public.submitLead', { eventCode: 'EBM27', type: 'info', productName: 'JoVE、ClinicalKey', name: '林護理師', organization: '臺大醫院 護理部', phone: '0912345678' });
   // 攤位操作＋不登記、攤位操作＋中獎後登記
   call('events.save', { event: { eventCode: 'BOOTH1', clientId: c.clientId, title: '年會攤位轉轉樂', subtitle: '轉到就送！',
     startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active', gameType: 'wheel', drawMode: 'booth', regMode: 'none' },

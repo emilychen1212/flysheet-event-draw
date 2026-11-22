@@ -8,7 +8,7 @@ const path = require('path');
 const { FakeSpreadsheet, makeProject } = require('./gas-fakes');
 
 const GAS = path.join(__dirname, '..', 'gas');
-const files = ['Config.gs', 'Utils.gs', 'Db.gs', 'Setup.gs', 'Auth.gs', 'Clients.gs', 'Events.gs', 'Public.gs', 'Code.gs']
+const files = ['Config.gs', 'Utils.gs', 'Db.gs', 'Setup.gs', 'Auth.gs', 'Clients.gs', 'Events.gs', 'Public.gs', 'Leads.gs', 'Code.gs']
   .map((f) => path.join(GAS, f));
 const all = fs.readdirSync(GAS).filter((f) => f.endsWith('.gs'));
 all.forEach((f) => { if (!files.some((x) => x.endsWith('/' + f))) throw new Error('selftest 沒載入 ' + f); });
@@ -160,6 +160,16 @@ check('複製：草稿、數量重置', cp.event.status === 'draft' && cp.prizes
 check('複製時代碼不能重複', !call('events.copy', { eventId: many.event.eventId, eventCode: 'MANY' }, amy.token).ok);
 check('有正式抽獎的活動不能刪除', !call('events.delete', { eventId: many.event.eventId }, amy.token).ok);
 check('草稿活動可以刪除', ok('events.delete', { eventId: cp.event.eventId }, amy.token) === true);
+
+console.log('\n[潛在客戶]');
+check('沒選產品不能送出', !call('public.submitLead', { eventCode: 'EBM27', type: 'trial', name: '王小明', email: 'ming@gmail.com' }).ok);
+ok('public.submitLead', { eventCode: 'EBM27', type: 'trial', productName: 'UpToDate、JoVE', name: '王小明', email: 'ming@gmail.com', organization: '臺大' });
+ok('public.submitLead', { eventCode: 'EBM27', type: 'info', productName: 'ClinicalKey', name: '林護理師', phone: '0912000111' });
+const myLeads = ok('leads.list', {}, amy.token);
+check('擁有者看得到自己活動的潛在客戶（不含測試資料）', myLeads.length === 2 && myLeads.every((l) => l.eventCode === 'EBM27'), myLeads.length);
+check('其他業務看不到', ok('leads.list', {}, ben.token).length === 0);
+check('管理者看得到全部', ok('leads.list', {}, A).length === 2);
+check('未登入不能讀名單', call('leads.list', {}).code === 'AUTH');
 
 console.log('\n[停用帳號]');
 ok('users.save', { userId: ben.user.userId, role: 'sales', status: 'disabled' }, A);

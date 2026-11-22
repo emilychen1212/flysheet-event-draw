@@ -26,6 +26,7 @@ const ROUTES = [
   [/^\/events\/([\w]+)$/, 'event-edit', 'event'],
   [/^\/clients$/, 'clients', 'client'],
   [/^\/clients\/([\w]+)$/, 'client-detail', 'client'],
+  [/^\/leads$/, 'leads', 'lead'],
   [/^\/users$/, 'users', 'users', true],
   [/^\/settings$/, 'settings', 'settings', true]
 ];
@@ -92,6 +93,7 @@ function renderShell() {
         <a href="#/" data-nav="home">${ICON.home}總覽</a>
         <a href="#/events" data-nav="event">${ICON.event}專案活動</a>
         <a href="#/clients" data-nav="client">${ICON.client}客戶</a>
+        <a href="#/leads" data-nav="lead">${ICON.lead}潛在客戶</a>
         ${app.isAdmin() ? `<div class="nav-label">管理者</div>
         <a href="#/users" data-nav="users">${ICON.users}使用者管理</a>
         <a href="#/settings" data-nav="settings">${ICON.settings}系統設定</a>` : ''}
