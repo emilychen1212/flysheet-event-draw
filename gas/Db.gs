@@ -9,30 +9,40 @@ var SCHEMA = {
   Clients: ['clientId', 'ownerId', 'name', 'type', 'note', 'createdAt', 'updatedAt'],
   Events: ['eventId', 'eventCode', 'ownerId', 'clientId', 'title', 'subtitle', 'clientDisplayName',
     'startAt', 'endAt', 'status', 'gameType', 'drawMode', 'regMode', 'dailyLimit', 'regFields',
-    'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt', 'coOwnerIds'],
+    'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt', 'coOwnerIds',
+    'taskMode', 'taskMinOptional'],
   Prizes: ['prizeId', 'eventId', 'name', 'quantity', 'remaining', 'isLose', 'isSpecial', 'color',
     'sortOrder', 'createdAt', 'updatedAt', 'label'],
   Participants: ['participantId', 'eventId', 'name', 'email', 'phone', 'organization', 'identity',
     'identityOther', 'customAnswers', 'privacyConsent', 'wantsProductInfo', 'isTest', 'registeredAt',
-    'createdAt', 'updatedAt'],
+    'createdAt', 'updatedAt', 'selectedDbs'],
   Draws: ['drawId', 'eventId', 'participantId', 'prizeId', 'prizeName', 'isLose', 'drawnAt',
     'deviceType', 'isTest', 'createdAt', 'updatedAt'],
   Leads: ['leadId', 'eventId', 'participantId', 'type', 'productName', 'name', 'organization',
     'email', 'phone', 'note', 'isTest', 'createdAt', 'updatedAt', 'productOwned', 'message'],
-  Settings: ['key', 'value', 'createdAt', 'updatedAt']
+  Settings: ['key', 'value', 'createdAt', 'updatedAt'],
+  // 體驗任務模組
+  TaskTemplates: ['templateId', 'dbName', 'title', 'description', 'dbIntro', 'actionText', 'defaultUrl',
+    'verifyMethod', 'quizJson', 'ownerId', 'createdAt', 'updatedAt'],
+  ClientDatabases: ['cdbId', 'clientId', 'dbName', 'url', 'note', 'sortOrder', 'createdAt', 'updatedAt'],
+  EventTasks: ['eventTaskId', 'eventId', 'templateId', 'dbName', 'title', 'description', 'dbIntro', 'actionText',
+    'url', 'verifyMethod', 'pinHash', 'quizJson', 'required', 'sortOrder', 'createdAt', 'updatedAt'],
+  TaskCompletions: ['completionId', 'participantId', 'eventId', 'eventTaskId', 'completedAt', 'verifyMethod',
+    'staffUserId', 'isTest', 'createdAt', 'updatedAt']
 };
 
 var ID_FIELD = {
   Users: 'userId', Clients: 'clientId', Events: 'eventId', Prizes: 'prizeId',
-  Participants: 'participantId', Draws: 'drawId', Leads: 'leadId', Settings: 'key'
+  Participants: 'participantId', Draws: 'drawId', Leads: 'leadId', Settings: 'key',
+  TaskTemplates: 'templateId', ClientDatabases: 'cdbId', EventTasks: 'eventTaskId', TaskCompletions: 'completionId'
 };
 
-var NUM_FIELDS = { quantity: 1, remaining: 1, sortOrder: 1, dailyLimit: 1 };
+var NUM_FIELDS = { quantity: 1, remaining: 1, sortOrder: 1, dailyLimit: 1, taskMinOptional: 1 };
 var BOOL_FIELDS = {
   promoEnabled: 1, isTestMode: 1, isLose: 1, isSpecial: 1, privacyConsent: 1,
-  wantsProductInfo: 1, isTest: 1, productOwned: 1
+  wantsProductInfo: 1, isTest: 1, productOwned: 1, required: 1
 };
-var JSON_FIELDS = { regFields: 1, promoProducts: 1, customAnswers: 1, coOwnerIds: 1 };
+var JSON_FIELDS = { regFields: 1, promoProducts: 1, customAnswers: 1, coOwnerIds: 1, quizJson: 1, selectedDbs: 1 };
 
 var TABLES_ = {};
 
@@ -45,7 +55,7 @@ function resetTables_() {
  * 所有寫入都經過 insert_/update_/remove_/removeWhere_，寫入時會自動清掉快取，所以不會讀到舊資料。
  * （若直接在試算表手動改資料，最多 CACHE_TABLE_SECONDS 秒後才會生效）
  */
-var CACHED_TABLES = { Users: 1, Events: 1 };
+var CACHED_TABLES = { Users: 1, Events: 1, EventTasks: 1 };
 var CACHE_TABLE_SECONDS = 300;
 
 function cachedRows_(name) {
@@ -67,7 +77,15 @@ function ss_() {
 }
 
 function sheet_(name) {
-  var sh = ss_().getSheetByName(name);
+  var ss = ss_();
+  var sh = ss.getSheetByName(name);
+  if (!sh && SCHEMA[name]) {
+    // 新版本新增的工作表：第一次用到時自動建立，不用手動新增或重跑 setup()
+    sh = ss.insertSheet(name);
+    sh.getRange(1, 1, 1, SCHEMA[name].length).setValues([SCHEMA[name]])
+      .setFontWeight('bold').setBackground('#1f2f57').setFontColor('#ffffff');
+    sh.setFrozenRows(1);
+  }
   if (!sh) throw new Error('找不到工作表「' + name + '」，請先執行 setup()');
   return sh;
 }

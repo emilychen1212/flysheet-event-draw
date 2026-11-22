@@ -10,6 +10,7 @@ import { api } from '../assets/js/api.js';
 import { sfx, setMuted, isMuted, unlock } from './sound.js';
 import { celebrate } from './celebrate.js';
 import { renderPromo } from './promo.js';
+import { renderTasks, savePt, loadPt } from './tasks.js';
 
 const params = new URLSearchParams(location.search);
 const CODE = (params.get('event') || '').trim().toUpperCase();
@@ -222,6 +223,7 @@ function showRegister() {
     const r = await api('public.register', { ...d, eventCode: CODE });
     S.participantId = r.participantId;
     S.lastReg = d;
+    if (r.tasksMode) { savePt(CODE, r.pt); return showTasks(r, r.pt); }
     if (r.limitReached) return showLimit(r.message);
     S.ticket = r.ticket;
     S.remainingToday = r.remainingToday;
@@ -271,7 +273,8 @@ async function doDraw() {
   } catch (err) {
     S.playing = false;
     if (S.game.cancel) S.game.cancel();
-    if (err.code === 'NEED_REGISTER') return showRegister();
+    if (err.code === 'NEED_TASKS' && hasTasks()) return resumeTasks();
+    if (err.code === 'NEED_REGISTER') return hasTasks() ? resumeTasks() : showRegister();
     if (/^STATE_/.test(err.code)) return showState(stateFromCode(err.code), err.message);
     return showStartButton('抽獎失敗：' + err.message);
   }
@@ -349,8 +352,36 @@ function showPromo(box, prize) {
   });
 }
 
+/* ---------- 體驗任務 ---------- */
+const hasTasks = () => S.ev.regMode === 'before' && (S.data.tasks || []).length > 0 && S.ev.taskMode && S.ev.taskMode !== 'none';
+
+function showTasks(state, pt) {
+  if (state.reg) S.lastReg = Object.assign({}, S.lastReg || {}, state.reg);
+  S.participantId = state.participantId || S.participantId;
+  renderTasks(stage(), {
+    code: CODE, data: S.data, state, pt,
+    onReady: (ticket) => { S.ticket = ticket; showGame(); },
+    onLimit: (message) => showLimit(message),
+    onRestart: () => { savePt(CODE, ''); nextPerson(); }
+  });
+}
+
+/** 重新整理後：用手機裡保存的參加者憑證向後端讀回進度 */
+async function resumeTasks() {
+  const pt = loadPt(CODE);
+  if (!pt) return showRegister();
+  stage().innerHTML = '<div class="p-boot" style="min-height:40vh"><div class="p-dots"><i></i><i></i><i></i></div></div>';
+  try {
+    showTasks(await api('public.taskState', { eventCode: CODE, pt }), pt);
+  } catch (e) {
+    savePt(CODE, '');
+    showRegister();
+  }
+}
+
 function nextPerson() {
   sfx.click();
+  savePt(CODE, '');
   S.ticket = '';
   S.participantId = '';
   S.lastReg = null;
@@ -385,6 +416,7 @@ function nextPerson() {
   }
   renderShell();
   if (S.data.state !== 'open') return showState(S.data.state, S.data.stateMessage);
-  if (S.ev.regMode === 'before') showRegister();
+  if (hasTasks()) resumeTasks();
+  else if (S.ev.regMode === 'before') showRegister();
   else showGame();
 })();

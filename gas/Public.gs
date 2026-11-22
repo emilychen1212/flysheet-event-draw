@@ -30,8 +30,10 @@ function apiPublicGetEvent_(p) {
   var state = eventState_(ev, prizes);
   var out = {
     event: pick_(ev, ['eventCode', 'title', 'subtitle', 'clientDisplayName', 'startAt', 'endAt', 'gameType',
-      'drawMode', 'regMode', 'dailyLimit', 'regFields', 'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode']),
+      'drawMode', 'regMode', 'dailyLimit', 'regFields', 'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode',
+      'taskMode', 'taskMinOptional']),
     prizes: prizes.map(publicPrize_),
+    tasks: hasTasks_(ev) ? eventTasksPublicOut_(ev) : [],
     state: state,
     stateMessage: STATE_MESSAGES[state] || '',
     privacyText: ev.regMode === 'none' ? '' : getSetting_('privacyText', DEFAULT_PRIVACY_TEXT),
@@ -145,6 +147,12 @@ function apiPublicRegister_(p) {
         d.registeredAt = now;
         person = insert_('Participants', d);
       }
+      if (hasTasks_(ev)) {
+        var st = taskStateOut_(ev, person);
+        st.pt = issueParticipantToken_(ev.eventId, person.participantId);
+        st.tasksMode = true;
+        return st;
+      }
       var used = countTodayDraws_(ev.eventId, person.participantId);
       var left = Math.max(0, ev.dailyLimit - used);
       var res = { participantId: person.participantId, dailyLimit: ev.dailyLimit, remainingToday: left, limitReached: left <= 0 };
@@ -205,6 +213,9 @@ function apiPublicDraw_(p) {
       var tk = p.ticket ? cacheGetJson_(ticketKey) : null;
       if (!tk || tk.eventId !== ev.eventId) throw appError_('請先完成登記再抽獎', 'NEED_REGISTER');
       participantId = tk.participantId;
+      if (hasTasks_(ev) && !taskProgress_(ev, participantId).eligible) {
+        throw appError_('還沒完成體驗任務，完成後才能抽獎', 'NEED_TASKS');
+      }
       used = countTodayDraws_(ev.eventId, participantId);
       if (used >= ev.dailyLimit) {
         cacheRemove_(ticketKey);

@@ -63,6 +63,20 @@ if (process.env.SEED !== '0') {
       g.update_('Draws', d.drawId, { drawnAt: `${days[i % 2]} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00` });
     });
   }
+  // 體驗任務示範：清華大學，UpToDate 必做＋至少 1 個選做，PIN 1234
+  {
+    const tpls = call('templates.list', {}, sales);
+    const nthu = call('clients.save', { name: '清華大學圖書館', type: '醫學院' }, sales);
+    call('clientDbs.save', { clientId: nthu.clientId, items: [{ dbName: 'UpToDate', url: 'https://proxy.lib.nthu.edu.tw/uptodate' }, { dbName: 'JoVE' }, { dbName: 'Acland' }, { dbName: 'HST' }] }, sales);
+    const pick = (db) => tpls.find((t) => t.dbName === db);
+    const tk = (db, extra) => Object.assign({ templateId: pick(db).templateId, dbName: db, title: pick(db).title, dbIntro: pick(db).dbIntro, actionText: pick(db).actionText,
+      verifyMethod: 'staff_pin', pin: '1234' }, extra || {});
+    call('events.save', { event: { eventCode: 'NTHU', clientId: nthu.clientId, title: '資料庫體驗抽抽樂', subtitle: '完成資料庫體驗任務就能抽獎！',
+      clientDisplayName: '清華大學圖書館 × 飛資得', startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active', gameType: 'wheel',
+      drawMode: 'self', regMode: 'before', dailyLimit: 1, taskMode: 'required_plus', taskMinOptional: 1 },
+      prizes: [{ label: '頭獎', name: '保溫杯', quantity: 5, isSpecial: true }, { label: '精美好禮', name: '帆布袋', quantity: 30 }, { name: '再接再厲', quantity: 20, isLose: true }],
+      tasks: [tk('UpToDate', { required: true }), tk('JoVE'), tk('Acland', { verifyMethod: 'self_check', pin: '' }), tk('HST')] }, sales);
+  }
   // PM 帳號，並指派為 EBM27 的協作人員
   call('users.save', { email: 'pm@example.com', name: '陳 PM', role: 'pm', status: 'active' }, admin);
   const pmId = call('users.options', {}, admin).find((u) => u.email === 'pm@example.com').userId;

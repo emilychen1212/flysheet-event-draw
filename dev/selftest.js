@@ -8,7 +8,7 @@ const path = require('path');
 const { FakeSpreadsheet, makeProject } = require('./gas-fakes');
 
 const GAS = path.join(__dirname, '..', 'gas');
-const files = ['Config.gs', 'Utils.gs', 'Db.gs', 'Setup.gs', 'Auth.gs', 'Clients.gs', 'Events.gs', 'Public.gs', 'Leads.gs', 'Reports.gs', 'Code.gs']
+const files = ['Config.gs', 'Utils.gs', 'Db.gs', 'Setup.gs', 'Auth.gs', 'Clients.gs', 'Events.gs', 'Public.gs', 'Leads.gs', 'Reports.gs', 'Tasks.gs', 'Code.gs']
   .map((f) => path.join(GAS, f));
 const all = fs.readdirSync(GAS).filter((f) => f.endsWith('.gs'));
 all.forEach((f) => { if (!files.some((x) => x.endsWith('/' + f))) throw new Error('selftest 沒載入 ' + f); });
@@ -196,6 +196,7 @@ check('列表標示是我的活動', ok('events.list', {}, pm.token).find((e) =>
 check('管理者看得到全部', ok('leads.list', {}, A).length === 2);
 check('未登入不能讀名單', call('leads.list', {}).code === 'AUTH');
 
+const carlTok = () => ok('auth.login', { idToken: 'dev:carl@example.com' }).token;
 console.log('\n[報表]');
 {
   const rp = ok('reports.get', { eventId: e1.event.eventId }, amy.token);
@@ -222,6 +223,107 @@ console.log('\n[總覽]');
   check('本月統計有數字', db.draws > 0 && db.leads === 2 && db.recommend === 1, db);
   const ls = ok('events.list', {}, amy.token).find((e) => e.eventId === e1.event.eventId);
   check('今日參與人數（以人計）', typeof ls.todayParticipants === 'number' && ls.todayParticipants <= ls.todayDrawCount, [ls.todayParticipants, ls.todayDrawCount]);
+}
+
+console.log('\n[體驗任務]');
+{
+  const tpls = ok('templates.list', {}, amy.token);
+  check('預設 5 個範本自動建立', ['UpToDate', 'JoVE', 'Acland', 'HST', 'JoMI'].every((n) => tpls.some((t) => t.dbName === n)), tpls.map((t) => t.dbName));
+  check('預設範本其他業務不能改', tpls.every((t) => !t.canEdit) && !call('templates.save', Object.assign({}, tpls[0]), amy.token).ok);
+  const mine = ok('templates.save', { dbName: 'uptodate', title: '我的 UpToDate 任務', verifyMethod: 'self_check' }, amy.token);
+  check('可以建立自己的範本', mine.canEdit === true);
+  check('範本連結要 http 開頭', !call('templates.save', { dbName: 'X', title: 'Y', defaultUrl: 'abc' }, amy.token).ok);
+
+  // 客戶訂購的資料庫
+  check('別人不能改我的客戶資料庫', call('clientDbs.save', { clientId: c1.clientId, items: [{ dbName: 'JoVE' }] }, carlTok()).code === 'FORBIDDEN');
+  ok('clientDbs.save', { clientId: c1.clientId, items: [{ dbName: 'UpToDate', url: 'https://proxy.school.edu/uptodate' }, { dbName: 'JoVE' }] }, amy.token);
+  check('客戶資料庫重複名稱會被擋（不分大小寫）', !call('clientDbs.save', { clientId: c1.clientId, items: [{ dbName: 'JoVE' }, { dbName: 'jove' }] }, amy.token).ok);
+  check('讀得回客戶資料庫', ok('clientDbs.list', { clientId: c1.clientId }, amy.token).length === 2);
+
+  const tUp = tpls.find((t) => t.dbName === 'UpToDate');
+  const tJo = tpls.find((t) => t.dbName === 'JoVE');
+  const tAc = tpls.find((t) => t.dbName === 'Acland');
+  const taskEv = (extra, tasks) => call('events.save', { event: baseEvent('TASK1', c1.clientId, Object.assign({ regMode: 'before', dailyLimit: 1 }, extra)),
+    prizes: [{ name: '筆記本', quantity: 20 }], tasks }, amy.token);
+  check('任務要搭配先登記再抽', !taskEv({ regMode: 'none', taskMode: 'any' }, [{ templateId: tUp.templateId, dbName: 'UpToDate', title: 'a', verifyMethod: 'self_check' }]).ok);
+  check('工作人員核銷任務一定要設 PIN', !taskEv({ taskMode: 'any' }, [{ templateId: tUp.templateId, dbName: 'UpToDate', title: 'a', verifyMethod: 'staff_pin' }]).ok);
+  check('PIN 要 4 位數', !taskEv({ taskMode: 'any' }, [{ dbName: 'UpToDate', title: 'a', verifyMethod: 'staff_pin', pin: '12' }]).ok);
+  check('選做數量不能超過選做任務數', !taskEv({ taskMode: 'required_plus', taskMinOptional: 3 }, [{ dbName: 'A', title: 'a', verifyMethod: 'self_check' }]).ok);
+  const saved = taskEv({ taskMode: 'required_plus', taskMinOptional: 1 }, [
+    { templateId: tUp.templateId, dbName: 'UpToDate', title: tUp.title, verifyMethod: 'staff_pin', pin: '2468', required: true },
+    { templateId: tJo.templateId, dbName: 'JoVE', title: tJo.title, verifyMethod: 'self_check' },
+    { templateId: tAc.templateId, dbName: 'Acland', title: tAc.title, verifyMethod: 'staff_pin', pin: '1357', url: 'https://override.example.com/acland' }
+  ]);
+  check('建立有任務的活動', saved.ok, saved.error);
+  const evId = saved.data.event.eventId;
+  const at = saved.data.event.tasks;
+  check('後台看得到任務但看不到 PIN', at.length === 3 && at.every((t) => !('pinHash' in t) && !('pin' in t)) && at[0].hasPin === true);
+  check('PIN 以雜湊儲存在 Sheet', rows('EventTasks').every((t) => !t.pinHash || (t.pinHash.length === 64 && t.pinHash !== '2468')));
+
+  const pub = ok('public.getEvent', { eventCode: 'TASK1' });
+  const raw = JSON.stringify(pub);
+  check('前台設定不含 PIN', !raw.includes('pinHash') && !raw.includes('2468') && !raw.includes('1357'));
+  const byDb = Object.fromEntries(pub.tasks.map((t) => [t.dbName, t]));
+  check('連結優先順序：客戶層 > 範本預設', byDb.UpToDate.url === 'https://proxy.school.edu/uptodate');
+  check('連結優先順序：活動覆寫最優先', byDb.Acland.url === 'https://override.example.com/acland');
+  check('連結優先順序：沒有覆寫和客戶層時用範本預設', byDb.JoVE.url === tJo.defaultUrl);
+
+  // 參加者流程
+  const r1 = ok('public.register', { eventCode: 'TASK1', name: '任務王', email: 'task@example.com', organization: '清大', identity: '學生', privacyConsent: true });
+  check('有任務時登記後不直接發抽獎券', r1.tasksMode === true && !r1.ticket && !!r1.pt && r1.progress.eligible === false && r1.progress.need === 2, r1.progress);
+  check('沒資格不能抽（拿不到抽獎券）', call('public.draw', { eventCode: 'TASK1' }).code === 'NEED_REGISTER');
+  // 偷用一般抽獎券也擋得住
+  const fakeTicket = g.issueTicket_(evId, r1.participantId);
+  check('伺服器端再檢查資格', call('public.draw', { eventCode: 'TASK1', ticket: fakeTicket }).code === 'NEED_TASKS');
+  const st1 = ok('public.selectDbs', { eventCode: 'TASK1', pt: r1.pt, dbs: ['jove', 'UpToDate', '亂填'] });
+  check('記錄選擇的資料庫（只留有效的）', JSON.stringify(st1.selectedDbs.sort()) === JSON.stringify(['JoVE', 'UpToDate']));
+  const idUp = byDb.UpToDate.eventTaskId, idJo = byDb.JoVE.eventTaskId, idAc = byDb.Acland.eventTaskId;
+  const w1 = call('public.completeTask', { eventCode: 'TASK1', pt: r1.pt, eventTaskId: idUp, pin: '0000' });
+  check('PIN 錯誤會提示剩餘次數', w1.code === 'PIN_WRONG' && w1.error.includes('4'), w1.error);
+  for (let i = 0; i < 3; i++) call('public.completeTask', { eventCode: 'TASK1', pt: r1.pt, eventTaskId: idUp, pin: '0000' });
+  const w5 = call('public.completeTask', { eventCode: 'TASK1', pt: r1.pt, eventTaskId: idUp, pin: '0000' });
+  check('連續錯 5 次鎖定', w5.code === 'PIN_LOCKED');
+  check('鎖定期間正確 PIN 也不行', call('public.completeTask', { eventCode: 'TASK1', pt: r1.pt, eventTaskId: idUp, pin: '2468' }).code === 'PIN_LOCKED');
+  g.cacheRemove_('pinlock_' + idUp + '_' + r1.participantId);   // 模擬 1 分鐘後
+  const s2 = ok('public.completeTask', { eventCode: 'TASK1', pt: r1.pt, eventTaskId: idUp, pin: '2468', staffToken: amy.token });
+  check('正確 PIN 核銷成功，還差 1 個選做', s2.progress.eligible === false && s2.progress.need === 1 && s2.progress.completed.includes(idUp), s2.progress);
+  check('記錄核銷人員', rows('TaskCompletions').find((c) => c.eventTaskId === idUp).staffUserId === amy.user.userId);
+  const s3 = ok('public.completeTask', { eventCode: 'TASK1', pt: r1.pt, eventTaskId: idJo });
+  check('自行勾選完成，達到門檻後發抽獎券', s3.progress.eligible === true && !!s3.ticket);
+  ok('public.completeTask', { eventCode: 'TASK1', pt: r1.pt, eventTaskId: idJo });
+  check('重複完成不會重複記錄', rows('TaskCompletions').filter((c) => c.eventTaskId === idJo && c.participantId === r1.participantId).length === 1);
+  const st = ok('public.taskState', { eventCode: 'TASK1', pt: r1.pt });
+  check('重新整理後讀回進度', st.progress.eligible && st.selectedDbs.length === 2 && st.reg.name === '任務王');
+  const d1 = ok('public.draw', { eventCode: 'TASK1', ticket: st.ticket });
+  check('有資格後可以抽獎', !!d1.prize);
+  const again = ok('public.register', { eventCode: 'TASK1', name: '任務王', email: 'task@example.com', organization: '清大', identity: '學生', privacyConsent: true });
+  check('同一人再登記：進度保留、但受每日次數限制', again.progress.eligible === true && again.limitReached === true && !again.ticket);
+
+  // 模式 A：完成任一任務
+  ok('events.save', { event: Object.assign({}, saved.data.event, { taskMode: 'any', eventCode: 'TASK1' }), prizes: saved.data.prizes, tasks: at }, amy.token);
+  check('修改活動時不重填 PIN 也保留原本的 PIN', rows('EventTasks').find((t) => t.eventTaskId === idUp).pinHash.length === 64);
+  const r2 = ok('public.register', { eventCode: 'TASK1', name: '小明', email: 'any@example.com', organization: '清大', identity: '學生', privacyConsent: true });
+  check('任一任務模式：還差 1 個', r2.progress.need === 1);
+  const a2 = ok('public.completeTask', { eventCode: 'TASK1', pt: r2.pt, eventTaskId: idAc, pin: '1357' });
+  check('任一任務模式：完成一個就有資格', a2.progress.eligible === true && !!a2.ticket);
+
+  // 沒設任務的活動維持原流程
+  const plain = ok('public.register', Object.assign({}, reg, { email: 'plain@example.com' }));
+  check('沒有任務的活動照原本流程', !!plain.ticket && !plain.tasksMode);
+
+  // 複製活動一併複製任務與 PIN
+  const cp2 = ok('events.copy', { eventId: evId, eventCode: 'TASK2' }, amy.token);
+  check('複製活動會複製任務（PIN 沿用）', cp2.event.tasks.length === 3 && cp2.event.tasks.every((t) => t.verifyMethod !== 'staff_pin' || t.hasPin));
+  // 範本修改不影響活動任務
+  ok('templates.save', Object.assign({}, mine, { title: '改過的標題' }), amy.token);
+  const rt = ok('reports.get', { eventId: evId }, amy.token).tasks;
+  const rUp = rt.tasks.find((t) => t.dbName === 'UpToDate');
+  const rJo = rt.tasks.find((t) => t.dbName === 'JoVE');
+  check('報表：資料庫選擇人數', rt.dbs.find((d) => d.dbName === 'JoVE').selected === 1 && rt.registered === 2, rt.dbs);
+  check('報表：必做任務分母是全部登記者', rUp.required && rUp.denominator === 2 && rUp.completed === 1 && rUp.dropped === 1, rUp);
+  check('報表：選做任務分母是選該資料庫的人', !rJo.required && rJo.denominator === 1 && rJo.completed === 1, rJo);
+  check('報表：達到門檻人數', rt.eligible === 2, rt);
+  check('改範本不影響已建立的活動任務', ok('events.get', { eventId: evId }, amy.token).event.tasks.every((t) => t.title !== '改過的標題'));
 }
 
 console.log('\n[停用帳號]');

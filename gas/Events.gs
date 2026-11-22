@@ -5,7 +5,8 @@ var REG_FIELD_KEYS = ['name', 'email', 'phone', 'organization', 'identity'];
 
 var EVENT_FIELDS = ['eventId', 'eventCode', 'ownerId', 'clientId', 'title', 'subtitle', 'clientDisplayName',
   'startAt', 'endAt', 'status', 'gameType', 'drawMode', 'regMode', 'dailyLimit', 'regFields',
-  'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt', 'coOwnerIds'];
+  'promoEnabled', 'promoProducts', 'soundDefault', 'isTestMode', 'createdAt', 'updatedAt', 'coOwnerIds',
+  'taskMode', 'taskMinOptional'];
 
 var PRIZE_FIELDS = ['prizeId', 'eventId', 'name', 'label', 'quantity', 'remaining', 'isLose', 'isSpecial', 'color', 'sortOrder'];
 
@@ -122,6 +123,9 @@ function cleanEvent_(p, existing, user) {
   ev.promoProducts = cleanPromoProducts_(p.promoProducts);
   ev.soundDefault = oneOf_(p.soundDefault, ['on', 'off'], 'on');
   ev.isTestMode = bool_(p.isTestMode);
+  ev.taskMode = oneOf_(p.taskMode, TASK_MODES, 'none');
+  ev.taskMinOptional = Math.min(30, Math.max(0, int_(p.taskMinOptional, 0)));
+  if (ev.taskMode !== 'none' && ev.regMode !== 'before') throw appError_('體驗任務要搭配「先登記再抽」，請到登記設定切換');
   // 協作人員：只有擁有者／管理者能改，協作人員自己存檔時保留原名單
   if (!existing || canManageEvent_(user, existing)) {
     var valid = {};
@@ -244,7 +248,8 @@ function apiEventsGet_(p, user) {
       coOwners: (ev.coOwnerIds || []).map(function (id) { return { userId: id, name: users[id] || '' }; }),
       clientName: client ? client.name : '',
       state: eventState_(ev, prizes),
-      testDrawCount: where_('Draws', function (d) { return d.eventId === ev.eventId && d.isTest; }).length
+      testDrawCount: where_('Draws', function (d) { return d.eventId === ev.eventId && d.isTest; }).length,
+      tasks: eventTasksAdminOut_(ev)
     }),
     prizes: prizes.map(prizeOut_)
   };
@@ -265,6 +270,8 @@ function apiEventsSave_(p, user) {
     if (existing) requireEditEvent_(user, existing);
     var ev = cleanEvent_(input, existing, user);
     var prizes = cleanPrizes_(p.prizes);
+    var tasks = cleanEventTasks_(p.tasks, ev.taskMode, ev.taskMinOptional,
+      existing ? where_('EventTasks', function (t) { return t.eventId === existing.eventId; }) : []);
     if (existing) assertPrizeRemovable_(existing.eventId, prizes);
     var saved;
     if (existing) {
@@ -275,6 +282,7 @@ function apiEventsSave_(p, user) {
       saved = insert_('Events', ev);
     }
     syncPrizes_(saved.eventId, prizes);
+    syncEventTasks_(saved.eventId, tasks);
     cacheRemove_('pub_' + saved.eventCode);
     resetTables_();
     return apiEventsGet_({ eventId: saved.eventId }, user);
@@ -301,6 +309,7 @@ function apiEventsCopy_(p, user) {
         isLose: x.isLose, isSpecial: x.isSpecial, color: x.color, sortOrder: x.sortOrder
       });
     });
+    copyEventTasks_(src.eventId, saved.eventId);
     resetTables_();
     return apiEventsGet_({ eventId: saved.eventId }, user);
   });
@@ -320,6 +329,8 @@ function apiEventsDelete_(p, user) {
     removeWhere_('Participants', mine);
     removeWhere_('Leads', mine);
     removeWhere_('Prizes', mine);
+    removeWhere_('EventTasks', mine);
+    removeWhere_('TaskCompletions', mine);
     remove_('Events', ev.eventId);
     cacheRemove_('pub_' + ev.eventCode);
     return true;
@@ -341,8 +352,9 @@ function apiEventsClearTest_(p, user) {
     });
     var participants = removeWhere_('Participants', isTestOf);
     var leads = removeWhere_('Leads', isTestOf);
+    var done = removeWhere_('TaskCompletions', isTestOf);
     cacheRemove_('pub_' + ev.eventCode);
-    return { draws: draws.length, participants: participants.length, leads: leads.length };
+    return { draws: draws.length, participants: participants.length, leads: leads.length, taskCompletions: done.length };
   });
 }
 

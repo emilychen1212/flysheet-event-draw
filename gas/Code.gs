@@ -44,6 +44,16 @@ function routes_() {
     // 潛在客戶
     'leads.list': { fn: apiLeadsList_ },
 
+    // 體驗任務
+    'templates.list': { fn: apiTemplatesList_ },
+    'templates.save': { fn: apiTemplatesSave_ },
+    'templates.delete': { fn: apiTemplatesDelete_ },
+    'clientDbs.list': { fn: apiClientDbsList_ },
+    'clientDbs.save': { fn: apiClientDbsSave_ },
+    'public.taskState': { pub: true, fn: apiPublicTaskState_ },
+    'public.selectDbs': { pub: true, fn: apiPublicSelectDbs_ },
+    'public.completeTask': { pub: true, fn: apiPublicCompleteTask_ },
+
     // 報表
     'reports.get': { fn: apiReportsGet_ },
     'reports.detail': { fn: apiReportsDetail_ }

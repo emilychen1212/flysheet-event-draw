@@ -15,7 +15,7 @@ export function publishHtml(ev) {
   const screen = urlOf(ev.eventCode, true);
   const warn = ev.isTestMode ? '<div class="notice warn" style="margin-bottom:14px"><span class="i">!</span><span>測試模式開啟中：前台會顯示「測試中」，資料不計入報表。正式開始前請關閉。</span></div>'
     : ev.status === 'draft' ? '<div class="notice" style="margin-bottom:14px"><span class="i">i</span><span>活動還是草稿，前台會顯示「活動尚未開放」。要開始抽獎時，請把狀態改成「進行中」。</span></div>' : '';
-  return `<h2 class="card-title"><span><span class="num">8</span>發布</span></h2>
+  return `<h2 class="card-title"><span><span class="num">9</span>發布</span></h2>
     ${warn}
     <div class="publish">
       <div class="qr"><canvas id="qrCanvas" width="400" height="400" aria-label="抽獎頁 QR code"></canvas>

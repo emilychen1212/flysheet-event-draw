@@ -95,8 +95,41 @@ function apiReportsGet_(p, user) {
       mobile: draws.filter(function (d) { return d.deviceType === 'mobile'; }).length,
       desktop: draws.filter(function (d) { return d.deviceType !== 'mobile'; }).length
     },
+    tasks: taskReport_(ev, people),
     generatedAt: now_()
   };
+}
+
+/** 體驗任務成果：各資料庫被選擇人數、各任務完成率、流失點（不含測試資料） */
+function taskReport_(ev, people) {
+  var tasks = eventTasksOf_(ev.eventId);
+  if (!tasks.length) return null;
+  var total = people.length;
+  var ids = {};
+  people.forEach(function (x) { ids[x.participantId] = 1; });
+  var done = {};
+  where_('TaskCompletions', function (c) { return c.eventId === ev.eventId && !c.isTest && ids[c.participantId]; })
+    .forEach(function (c) { (done[c.eventTaskId] = done[c.eventTaskId] || {})[c.participantId] = 1; });
+  var picked = {};
+  people.forEach(function (x) { (x.selectedDbs || []).forEach(function (d) { (picked[d] = picked[d] || {})[x.participantId] = 1; }); });
+  var dbNames = [];
+  tasks.forEach(function (t) { if (dbNames.indexOf(t.dbName) < 0) dbNames.push(t.dbName); });
+  var dbs = dbNames.map(function (d) {
+    var n = Object.keys(picked[d] || {}).length;
+    return { dbName: d, selected: n, rate: total ? n / total : null };
+  });
+  var taskRows = tasks.map(function (t) {
+    // 必做任務：分母是全部登記者；選做任務：分母是有選這個資料庫的人
+    var base = t.required ? ids : (picked[t.dbName] || {});
+    var denom = Object.keys(base).length;
+    var completed = Object.keys(done[t.eventTaskId] || {}).filter(function (pid) { return base[pid]; }).length;
+    var completedAll = Object.keys(done[t.eventTaskId] || {}).length;
+    return { dbName: t.dbName, title: t.title, required: t.required, verifyMethod: t.verifyMethod,
+      denominator: denom, completed: completed, completedAll: completedAll, rate: denom ? completed / denom : null, dropped: Math.max(0, denom - completed) };
+  });
+  var eligible = people.filter(function (x) { return taskProgress_(ev, x.participantId).eligible; }).length;
+  return { mode: ev.taskMode, minOptional: ev.taskMinOptional, registered: total, eligible: eligible,
+    notEligible: Math.max(0, total - eligible), dbs: dbs, tasks: taskRows };
 }
 
 function apiReportsDetail_(p, user) {

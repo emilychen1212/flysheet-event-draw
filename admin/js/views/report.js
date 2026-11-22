@@ -96,6 +96,24 @@ export async function render(root, [eventId], app) {
       <div id="timeChart"></div><div id="timeTable" hidden></div>
     </section>
 
+    ${r.tasks ? `<section class="card rtask" style="margin-top:16px">
+      <h2 class="card-title"><span>體驗任務成果</span><span class="muted small">不含測試資料</span></h2>
+      <div class="grid rtask-stats">
+        <div class="stat"><span class="v">${r.tasks.registered}</span><span class="l">登記人數</span></div>
+        <div class="stat"><span class="v">${r.tasks.eligible}</span><span class="l">達到抽獎門檻</span><span class="hint">${pct(r.tasks.registered ? r.tasks.eligible / r.tasks.registered : null)}</span></div>
+        <div class="stat"><span class="v">${r.tasks.notEligible}</span><span class="l">未達門檻（流失）</span></div>
+      </div>
+      <h3 class="rsub">各資料庫被選擇的人數</h3>
+      <div class="table-wrap"><table class="table"><thead><tr><th>資料庫</th><th class="num">選擇人數</th><th class="num">比例</th><th style="width:40%"></th></tr></thead>
+        <tbody>${r.tasks.dbs.map((d) => `<tr><td><b>${esc(d.dbName)}</b></td><td class="num">${d.selected}</td><td class="num">${pct(d.rate)}</td>
+          <td><span class="rtrack"><i style="width:${d.rate ? (d.rate * 100).toFixed(1) : 0}%"></i></span></td></tr>`).join('')}</tbody></table></div>
+      <h3 class="rsub">各任務完成率</h3>
+      <div class="table-wrap"><table class="table"><thead><tr><th>資料庫</th><th>任務</th><th class="num">應完成人數</th><th class="num">完成</th><th class="num">完成率</th><th class="num">選了但未完成</th></tr></thead>
+        <tbody>${r.tasks.tasks.map((t) => `<tr><td><b>${esc(t.dbName)}</b></td><td>${esc(t.title)} ${t.required ? '<span class="badge orange">必做</span>' : '<span class="badge">選做</span>'}</td>
+          <td class="num">${t.denominator}</td><td class="num">${t.completed}</td><td class="num"><b>${pct(t.rate)}</b></td><td class="num">${t.dropped}</td></tr>`).join('')}</tbody></table></div>
+      <p class="muted small" style="margin:8px 0 0">必做任務的「應完成人數」是全部登記者；選做任務是有選擇該資料庫的人。</p>
+    </section>` : ''}
+
     <div class="grid cols-2" style="margin-top:16px">
       <section class="card"><h2 class="card-title"><span>服務單位（前 10 名）</span></h2>${barList(r.organizations, r.registered)}</section>
       <section class="card"><h2 class="card-title"><span>身分</span></h2>${barList(r.identities, r.registered)}</section>
@@ -174,7 +192,14 @@ export async function render(root, [eventId], app) {
           登記時間: x.registeredAt, 姓名: x.name, Email: x.email, 手機: x.phone, 服務單位: x.organization, 身分: x.identity,
           想接收產品資訊: x.wantsProductInfo ? '是' : '否'
         }, Object.fromEntries(d.customQuestions.map((q) => [q.label, x.answers[q.id]])), { 抽獎次數: x.drawCount, 獲得獎品: x.prizesWon })) },
-        { name: '潛在客戶名單', rows: d.leads.map(lead), widths: [20, 14, 20, 10, 30, 10, 22, 26, 14, 30] }
+        { name: '潛在客戶名單', rows: d.leads.map(lead), widths: [20, 14, 20, 10, 30, 10, 22, 26, 14, 30] },
+        ...(r.tasks ? [{ name: '體驗任務', aoa: [
+          ['登記人數', r.tasks.registered], ['達到抽獎門檻', r.tasks.eligible, pct(r.tasks.registered ? r.tasks.eligible / r.tasks.registered : null)], ['未達門檻（流失）', r.tasks.notEligible], [],
+          ['資料庫', '選擇人數', '比例'], ...r.tasks.dbs.map((x) => [x.dbName, x.selected, pct(x.rate)]), [],
+          ['資料庫', '任務', '必做／選做', '應完成人數', '完成', '完成率', '選了但未完成'],
+          ...r.tasks.tasks.map((t) => [t.dbName, t.title, t.required ? '必做' : '選做', t.denominator, t.completed, pct(t.rate), t.dropped]), [],
+          ['說明', '必做任務的應完成人數是全部登記者；選做任務是有選擇該資料庫的人。不含測試資料。']
+        ], widths: [16, 40, 12, 12, 8, 10, 14] }] : [])
       ]);
     } catch (err) { toastErr(err); }
   }));

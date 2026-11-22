@@ -7,6 +7,7 @@ import {
 import { regFieldsHtml, readRegFields, bindRegFields } from './reg-fields.js';
 import { editClient } from './clients.js';
 import { publishHtml, bindPublish } from './publish.js';
+import { tasksSectionHtml, bindTasks } from './event-tasks.js';
 
 const PALETTE = ['#f27a2b', '#1b2a52', '#f8b07c', '#3d5596', '#e8b839', '#2d8a57', '#c4432b', '#8a6fc7', '#4aa3c2', '#d96aa0'];
 const LOSE_COLOR = '#cfc8bd';
@@ -38,7 +39,8 @@ export async function render(root, [eventId], app) {
       eventCode: '', clientId: app.query.get('client') || '', title: '', subtitle: '', clientDisplayName: '',
       startAt: t.startAt, endAt: t.endAt, status: 'draft', gameType: 'wheel', drawMode: 'self', regMode: 'before',
       dailyLimit: 1, regFields: settings.defaultRegFields, promoEnabled: false, promoProducts: [], soundDefault: 'on',
-      isTestMode: false, canEdit: true, canManage: true, ownerId: app.user.userId, coOwnerIds: []
+      isTestMode: false, canEdit: true, canManage: true, ownerId: app.user.userId, coOwnerIds: [],
+      taskMode: 'none', taskMinOptional: 0, tasks: []
     };
     prizes = [
       { name: '', quantity: 10, isLose: false, isSpecial: false, color: PALETTE[0] },
@@ -84,7 +86,7 @@ export async function render(root, [eventId], app) {
 
     <nav class="section-nav">
       <a data-jump="s-basic">基本資訊</a><a data-jump="s-mode">抽獎方式</a><a data-jump="s-game">遊戲形式</a><a data-jump="s-prize">獎池</a>
-      <a data-jump="s-reg">登記設定</a><a data-jump="s-promo">推廣產品</a><a data-jump="s-test">測試模式</a>${isNew ? '' : '<a data-jump="publish">發布</a>'}
+      <a data-jump="s-reg">登記設定</a><a data-jump="s-task">體驗任務</a><a data-jump="s-promo">推廣產品</a><a data-jump="s-test">測試模式</a>${isNew ? '' : '<a data-jump="publish">發布</a>'}
     </nav>
 
     <form id="form" autocomplete="off">
@@ -173,8 +175,10 @@ export async function render(root, [eventId], app) {
       </div>
     </section>
 
+    ${tasksSectionHtml(ev, dis, 6)}
+
     <section class="card" id="s-promo">
-      <h2 class="card-title"><span><span class="num">6</span>本次推廣產品</span></h2>
+      <h2 class="card-title"><span><span class="num">7</span>本次推廣產品</span></h2>
       <p class="muted small" style="margin-top:-6px">填這次活動主要推廣的產品，並標示客戶是否已購買。已購買的產品在前台會顯示「想學更多使用技巧」，尚未購買的顯示「有興趣了解更多」。</p>
       <div id="promoList" style="display:grid;gap:10px"></div>
       ${ro ? '' : `<button type="button" class="btn sm" id="addPromo" style="margin-top:10px">${ICON.plus}新增推廣產品</button>`}
@@ -185,7 +189,7 @@ export async function render(root, [eventId], app) {
     </section>
 
     <section class="card" id="s-test">
-      <h2 class="card-title"><span><span class="num">7</span>測試模式</span></h2>
+      <h2 class="card-title"><span><span class="num">8</span>測試模式</span></h2>
       <label class="switch"><input type="checkbox" name="isTestMode" ${dis}><span class="track"></span>開啟測試模式</label>
       <p class="muted small" style="margin:10px 0 0">開啟後，即使是草稿或不在活動時間內也能抽獎，前台會顯示「測試中」。測試時的登記、抽獎、潛在客戶都會標記為測試資料，<b>不計入報表</b>。正式開始前記得關閉。</p>
       ${isNew ? '' : `<div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap">
@@ -262,6 +266,9 @@ export async function render(root, [eventId], app) {
     if (['drawMode', 'regMode', 'promoEnabled'].includes(e.target.name)) syncModes();
   });
   syncModes();
+
+  /* ---------- 體驗任務 ---------- */
+  const taskCtl = await bindTasks(root, form, ev, { ro, markDirty });
 
   F('clientId').addEventListener('change', () => {
     const opt = F('clientId').selectedOptions[0];
@@ -448,8 +455,11 @@ export async function render(root, [eventId], app) {
       promoEnabled: F('promoEnabled').checked,
       promoProducts: promo,
       isTestMode: F('isTestMode').checked,
+      taskMode: taskCtl.collect().taskMode,
+      taskMinOptional: taskCtl.collect().taskMinOptional,
       coOwnerIds: $$('input[name=coOwner]:checked', form).map((i) => i.value)
     },
+    tasks: taskCtl.collect().tasks,
     prizes: prizeState.map((p) => ({
       prizeId: p.prizeId || '', label: (p.label || '').trim(), name: p.name.trim() || (p.isLose ? '銘謝惠顧' : ''), quantity: p.quantity === '' ? -1 : p.quantity,
       isLose: p.isLose, isSpecial: p.isSpecial, color: p.color
@@ -469,6 +479,8 @@ export async function render(root, [eventId], app) {
     if (d.prizes.some((p) => p.quantity < 0)) return ['獎項數量要是 0 以上的整數'];
     if (!d.prizes.some((p) => !p.isLose)) return ['至少要有一個不是「銘謝惠顧」的獎項'];
     if (e.promoEnabled && e.drawMode === 'self' && !e.promoProducts.some((p) => p.name.trim())) return ['推廣頁已開啟，請至少新增一個推廣產品'];
+    const tk = taskCtl.validate(e.regMode);
+    if (tk) return tk;
     return null;
   };
 

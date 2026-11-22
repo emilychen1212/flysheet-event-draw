@@ -649,3 +649,31 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .dstats .card { padding: 14px; }
   .dstats .stat .v { font-size: 24px; }
 }
+
+/* ---------- 體驗任務 ---------- */
+.cdb-head, .cdb-row { display: grid; grid-template-columns: 170px minmax(0, 1.4fr) minmax(0, 1fr) 40px; gap: 8px; align-items: center; }
+.cdb-head { font-size: 12px; color: var(--text-muted); padding: 0 2px 6px; }
+.cdb-row { margin-bottom: 8px; }
+@media (max-width: 760px) { .cdb-head { display: none; } .cdb-row { grid-template-columns: 1fr 40px; } .cdb-row [data-k=url], .cdb-row [data-k=note] { grid-column: 1; } }
+.tpl-list { display: grid; gap: 8px; }
+.tpl { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--gray-50); }
+.tpl-main { display: grid; gap: 3px; min-width: 0; }
+.tpl-main a { color: var(--navy-700); word-break: break-all; }
+.tpl-act { display: flex; gap: 6px; flex: none; }
+.tpl-group + .tpl-group { margin-top: 16px; }
+.task-add { display: grid; gap: 8px; margin-top: 8px; }
+.task-add .db { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--gray-300); background: #fff; }
+.task-add .db b { margin-right: 6px; color: var(--navy-800); }
+.task-add .db .muted { font-size: 12px; }
+.etask { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: #fff; display: grid; gap: 10px; }
+.etask.req { border-color: var(--orange-300); box-shadow: inset 4px 0 0 var(--accent); }
+.etask .top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.etask .top .db { font-weight: 700; color: var(--navy-800); }
+.etask .top .sp { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+.etask .order { display: inline-flex; flex-direction: column; }
+.etask .order button { border: 0; background: none; color: var(--gray-500); cursor: pointer; font-size: 11px; line-height: 1; padding: 1px 4px; }
+.etask .pin { width: 110px; font-family: var(--font-mono); letter-spacing: .3em; text-align: center; }
+.task-list { display: grid; gap: 10px; }
+.rtask-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
+.rtask-stats .stat { background: var(--gray-50); border-radius: 12px; padding: 12px 14px; }
+.rsub { font-size: 14px; color: var(--navy-800); margin: 18px 0 8px; }

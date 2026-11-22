@@ -64,6 +64,7 @@ function setup() {
     update_('Users', admin.userId, { role: 'admin', status: 'active' });
   }
 
+  seedTemplates_();
   if (getSetting_('privacyText', null) === null) setSetting_('privacyText', DEFAULT_PRIVACY_TEXT);
   if (getSetting_('defaultRegFields', null) === null) setSetting_('defaultRegFields', DEFAULT_REG_FIELDS);
 
