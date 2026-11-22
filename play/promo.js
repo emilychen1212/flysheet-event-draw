@@ -75,7 +75,7 @@ export function renderPromo(box, o) {
           <div class="p-options">${flow.options.map(([k, label]) => `<label class="p-opt"><input type="radio" name="type" value="${k}"><span>${label}</span></label>`).join('')}</div></div>
         <div class="p-field" data-msg hidden><label for="ld_msg"></label><textarea class="p-input" id="ld_msg" name="message" maxlength="500"></textarea></div>
         <div class="p-field"><label for="ld_name">姓名<span class="req">*</span></label><input class="p-input" id="ld_name" name="name" autocomplete="name" maxlength="50" value="${esc(r.name)}"></div>
-        <div class="p-field"><label for="ld_org">服務單位</label><input class="p-input" id="ld_org" name="organization" autocomplete="organization" maxlength="100" value="${esc(r.organization)}"></div>
+        <div class="p-field"><label for="ld_org">服務單位／就讀學校</label><input class="p-input" id="ld_org" name="organization" autocomplete="organization" maxlength="100" value="${esc(r.organization)}"></div>
         <div class="p-field"><label for="ld_email">Email</label><input class="p-input" id="ld_email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="200" value="${esc(r.email)}"></div>
         <div class="p-field"><label for="ld_phone">手機</label><input class="p-input" id="ld_phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="20" placeholder="09xxxxxxxx" value="${esc(r.phone)}">
           <span style="font-size:12.5px;color:var(--text-muted)">Email 與手機至少填一項</span></div>

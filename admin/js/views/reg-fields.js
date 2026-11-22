@@ -5,7 +5,7 @@ export const FIELD_LABELS = {
   name: '姓名',
   email: 'Email',
   phone: '手機',
-  organization: '服務單位',
+  organization: '服務單位／就讀學校',
   identity: '身分（醫師／護理師／老師／學生／館員／其他）'
 };
 const STATES = [['required', '顯示且必填'], ['optional', '顯示選填'], ['hidden', '隱藏']];
