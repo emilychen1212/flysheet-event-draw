@@ -56,9 +56,7 @@ export function renderTasks(stage, o) {
       </label>`).join('')}</div>
       <div id="tErr"></div>
       <button class="p-btn" id="tNext">下一步：查看任務</button>
-      <button class="t-link" id="tRestart">不是你？重新登記</button>
     </div>`;
-    stage.querySelector('#tRestart').onclick = o.onRestart;
     stage.querySelector('#tNext').onclick = async (e) => {
       const btn = e.currentTarget;
       const picked = Array.from(stage.querySelectorAll('.t-db input:checked')).map((i) => i.value);
@@ -99,11 +97,9 @@ export function renderTasks(stage, o) {
       }).join('') || '<div class="muted">沒有任務</div>'}</div>
       <div id="tErr"></div>
       ${dbs.some((d) => !d.required) ? '<button class="t-link" id="tChange">修改想體驗的資料庫</button>' : ''}
-      <button class="t-link" id="tRestart">不是你？重新登記</button>
     </div>`;
     stage.querySelector('#tGo')?.addEventListener('click', () => { sfx.click(); o.onReady(state.ticket); });
     stage.querySelector('#tChange')?.addEventListener('click', choose);
-    stage.querySelector('#tRestart').addEventListener('click', o.onRestart);
     stage.querySelectorAll('.t-card').forEach((card) => {
       const task = tasks.find((t) => t.eventTaskId === card.dataset.id);
       card.querySelector('[data-pin]')?.addEventListener('click', () => pinPad(task));

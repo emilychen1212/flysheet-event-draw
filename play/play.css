@@ -331,3 +331,7 @@ textarea.p-input { min-height: 80px; resize: vertical; }
 .t-keys button:active { transform: scale(.94); background: var(--navy-100); }
 .t-keys button.fn { font: 500 15px var(--font-sans); color: var(--gray-700); background: transparent; }
 @keyframes fade { from { opacity: 0; } }
+
+/* 手機連點按鈕（例如 PIN 數字鍵）不要觸發點兩下放大 */
+button, a, label, .p-btn, .t-keys, .t-pin, .chip, .p-opt, .t-db, .g-cc .dial, .g-gacha .knob, .g-slot .lever { touch-action: manipulation; }
+.t-keys button { user-select: none; -webkit-user-select: none; }

@@ -95,6 +95,7 @@ function showState(state, message) {
 
 function showLimit(message) {
   S.ticket = '';
+  savePt(CODE, '');
   stage().innerHTML = `<div class="panel p-msg"><div class="big">🌙</div><h2>${esc(message || '今天的抽獎次數已用完，明天再來試試手氣！')}</h2>
     ${S.ev.drawMode === 'booth' ? '<div style="margin-top:18px"><button class="p-btn navy" id="next">下一位</button></div>' : ''}</div>`;
   $('#next')?.addEventListener('click', nextPerson);
@@ -141,7 +142,7 @@ function regFormHtml({ claim }) {
         <label class="p-check"><input type="checkbox" name="wantsProductInfo"><span>我想接收產品資訊（選填）</span></label>
       </div>
       <div id="regErr"></div>
-      <button class="p-btn" type="submit" id="regSubmit">${claim ? '送出領獎資料' : '完成登記，開始抽獎'}</button>
+      <button class="p-btn" type="submit" id="regSubmit">${claim ? '送出領獎資料' : hasTasks() ? '先登記，前往任務' : '完成登記，開始抽獎'}</button>
     </form>`;
 }
 
@@ -293,6 +294,7 @@ async function doDraw() {
     S.ticket = res.nextTicket || '';
     S.remainingToday = res.remainingToday || 0;
   }
+  if (hasTasks()) savePt(CODE, '');
   showResult(res);
   if (res.prize.isSpecial) celebrate(res.prize.name);
 }
