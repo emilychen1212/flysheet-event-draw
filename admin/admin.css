@@ -630,3 +630,22 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .rbar { grid-template-columns: minmax(70px, 34%) 1fr 56px; font-size: 13px; }
 }
 .grid > .card + .card { margin-top: 0; }
+
+/* ---------- 總覽 ---------- */
+.dstats { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 8px; }
+.dsec { font-size: 16px; color: var(--navy-800); margin: 28px 0 12px; }
+.event-card .top { text-decoration: none; color: inherit; }
+.event-card .top:hover h3 { color: var(--orange-600); }
+.event-card .nums { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.event-card .nums div { background: var(--gray-50); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; }
+.event-card .nums b { font: 700 24px/1.1 var(--font-display); color: var(--navy-800); }
+.event-card .nums b small { font: 500 13px var(--font-sans); color: var(--text-muted); }
+.event-card .nums span { font-size: 12px; color: var(--text-muted); }
+.event-card .quick { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; border-top: 1px dashed var(--gray-200); margin-top: 2px; }
+.event-card .quick .btn { flex: 1; min-width: 0; padding: 4px 6px; }
+.event-card.lift:hover { transform: none; }
+@media (max-width: 640px) {
+  .dstats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .dstats .card { padding: 14px; }
+  .dstats .stat .v { font-size: 24px; }
+}

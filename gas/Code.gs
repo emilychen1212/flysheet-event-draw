@@ -33,6 +33,7 @@ function routes_() {
 
     // 活動
     'events.list': { fn: apiEventsList_ },
+    'dashboard.get': { fn: apiDashboard_ },
     'events.get': { fn: apiEventsGet_ },
     'events.checkCode': { fn: apiEventsCheckCode_ },
     'events.save': { fn: apiEventsSave_ },

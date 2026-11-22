@@ -28,6 +28,7 @@ export async function render(root, [clientId], app) {
     <div id="events">${mine.length ? eventTable(mine, app, { showClient: false }) : emptyHtml({ title: '這個客戶還沒有活動', text: '建立第一個擺攤活動吧！' })}</div>`;
 
   $('#events').addEventListener('click', (e) => {
+    if (e.target.closest('[data-stop]')) return;
     const tr = e.target.closest('tr[data-id]');
     if (tr) app.go('#/events/' + tr.dataset.id);
   });

@@ -5,7 +5,38 @@
 - 後台：`https://emilychen1212.github.io/flysheet-event-draw/admin/`
 - 抽獎頁：`https://emilychen1212.github.io/flysheet-event-draw/play/?event=活動代碼`
 - 展示頁（攤位大螢幕）：`https://emilychen1212.github.io/flysheet-event-draw/play/?event=活動代碼&view=screen`
-- API 測試台（第 1 階段用）：`https://emilychen1212.github.io/flysheet-event-draw/dev/api-test.html`
+- API 測試台（排查問題用）：`https://emilychen1212.github.io/flysheet-event-draw/dev/api-test.html`
+
+## 功能總覽
+
+| 區域 | 功能 |
+|---|---|
+| 後台總覽 | 本月參與人數／抽獎次數／新增潛在客戶、進行中・即將開始・最近結束的活動卡片（快速開啟抽獎頁、展示頁、QR、報表） |
+| 客戶 | 每位業務各自建立；有活動的客戶不能刪除 |
+| 專案活動 | 基本資訊、協作人員、抽獎方式、遊戲形式（含試玩）、獎池（獎項標籤＋獎品）、登記設定、本次推廣產品、測試模式、發布（網址＋QR code）、複製活動 |
+| 前台抽獎頁 | 四款遊戲：醫學知識抽抽樂、刮刮樂（古早風）、拉霸機（賭場風）、彩球機（可愛風）；登記三模式；特別獎慶祝動畫；音效 |
+| 推廣頁 | 自助掃碼抽完獎後顯示推廣產品，依「已購買／尚未購買」提供不同需求表單 |
+| 展示頁 | 攤位大螢幕：大 QR code＋各獎項剩餘數量，每 30 秒更新 |
+| 潛在客戶 | 協助推薦採購（新購／續訂）、了解資訊、試用、教育訓練、其他；篩選、匯出 Excel |
+| 成果報表 | 參與人數、抽獎次數、獎項發出、時段／單位／身分分布、產品資訊同意率、潛在客戶；匯出 Excel（4 個工作表）、16:9 成果圖卡 PNG |
+| 使用者管理 | 白名單、角色（管理者／PM／業務）、停用（僅管理者） |
+| 系統設定 | 個資同意聲明、預設登記欄位（僅管理者） |
+
+### 角色與權限
+
+| | 管理者 | 業務／PM |
+|---|---|---|
+| 自己建立或被指派協作的活動 | 可修改、看個資 | 可修改、看個資 |
+| 其他人的活動 | 可修改、看個資 | 只能看設定與統計，看不到個資、不能匯出 |
+| 刪除活動、修改協作人員 | 可以 | 只有活動建立者 |
+| 使用者管理、系統設定 | 可以 | 不行 |
+
+### 現場使用小提醒
+
+- 活動開始前：把「活動狀態」改成「進行中」，並**關閉測試模式**；測試時抽走的獎品可以按「清除測試資料」還原。
+- 每人每日可抽次數只由系統判斷（以 Email／手機辨識同一人），前台不會顯示剩餘次數。
+- 一段時間沒人使用後，第一次開啟會比較慢（Google 需要 3～5 秒啟動），活動開始前先自己開一次抽獎頁。
+- 直接在 Google 試算表手動改資料，最多 5 分鐘後才會反映到網站；從後台修改則立即生效。
 
 ## 系統架構
 
@@ -41,8 +72,10 @@
 | `Setup.gs` | 初始化、個資聲明預設文字 |
 | `Auth.gs` | 登入、使用者、系統設定 |
 | `Clients.gs` | 客戶 |
-| `Events.gs` | 活動、獎池 |
-| `Public.gs` | 前台登記、抽獎 |
+| `Events.gs` | 活動、獎池、總覽統計 |
+| `Public.gs` | 前台登記、抽獎、推廣表單 |
+| `Leads.gs` | 潛在客戶名單 |
+| `Reports.gs` | 成果報表 |
 
 操作方式：
 
@@ -125,16 +158,15 @@ window.APP_CONFIG = {
 2. Source 選「Deploy from a branch」，Branch 選 `main`、資料夾 `/ (root)` → Save。
 3. 等 1～2 分鐘，網址會是 `https://emilychen1212.github.io/flysheet-event-draw/`。
 
-### 步驟 9：驗收第 1 階段
+### 步驟 9：確認可以使用
 
-打開 API 測試台 `https://emilychen1212.github.io/flysheet-event-draw/dev/api-test.html`：
+1. 打開後台 `https://emilychen1212.github.io/flysheet-event-draw/admin/`，用管理者的 Google 帳號登入。
+2. 「客戶」新增一個客戶 →「專案活動」建立活動，開啟測試模式 → 儲存。
+3. 在活動的「發布」區打開抽獎頁，登記並抽一次；回到 Google Sheet 看 Draws 工作表有沒有多一筆。
+4. 回後台按「清除測試資料」，Prizes 的 remaining 會還原。
+5. 用一個**不在白名單**的 Google 帳號登入 → 應該顯示「不在使用名單中」。
 
-1. 「設定檢查」兩個都顯示「已填」。
-2. 按「測試 GAS 連線」→ 出現 `ok: true`。
-3. 用 Google 登入 → 顯示「已登入：…（管理者）」。
-4. 依序按「建立示範客戶＋活動 DEMO1」→「讀取 DEMO1 公開設定」→「登記並抽一次」（連按 4 次，第 4 次會顯示今天次數用完）→「清除 DEMO1 測試資料」。
-5. 回到 Google Sheet 看各工作表的資料變化。
-6. 用一個**不在白名單**的 Google 帳號登入 → 應該顯示「不在使用名單中」。
+> 有狀況時可以用 API 測試台（`/dev/api-test.html`）逐項檢查連線、登入是否正常。
 
 ---
 
@@ -154,6 +186,16 @@ window.APP_CONFIG = {
 只有想保留舊版本同時測試新版時才用。新網址要記得更新到 `config.js`。
 
 > 只改 `Config.gs` 也要重新部署。只執行 `setup()` 不用重新部署。
+
+**用 clasp 一鍵更新（Claude 目前用這個方式）**
+
+本機的 `.deploy/` 資料夾（不會上傳 GitHub）放著填好 email 的 `Config.gs` 和 `.clasp.json`。從 `gas/` 複製其他檔案進去後執行：
+
+```bash
+cd .deploy && clasp push -f && clasp update-deployment <部署 ID>
+```
+
+部署 ID 就是 GAS 網址 `/macros/s/` 和 `/exec` 中間那段，網址不會變。新版本新增的欄位會自動補到試算表，不用重跑 `setup()`。
 
 ---
 
@@ -207,12 +249,25 @@ window.APP_CONFIG = {
 **Q：執行 `setup()` 出現「請先在 Config.gs 填寫 ADMIN_EMAIL」**
 - 依步驟 3 填好 email、儲存後再執行。
 
+**Q：網站更新後，畫面還是舊的**
+- GitHub Pages 更新約需 1～2 分鐘；之後在瀏覽器按 `Cmd + Shift + R`（Windows：`Ctrl + F5`）強制重新整理。
+
+**Q：每次操作要等 1～3 秒**
+- 這是 Google Apps Script 本身的啟動時間，和資料量無關。後台的清單會暫存 30 秒、切換頁面不用重等；前台抽獎時遊戲會先轉起來，等結果回來再停。
+
+**Q：參與者說「今天的抽獎次數已用完」，但他還沒抽過**
+- 系統以 Email 或手機辨識同一人，只要其中一個和今天已登記的人相同就算同一人。請他確認是否和家人、同事共用 Email 或手機。
+
+**Q：其他業務說看不到參與者名單**
+- 名單含個資，只有活動建立者、協作人員與管理者看得到。請活動建立者在「基本資訊 → 協作人員」勾選他。
+
 ---
 
 ## 五、開發者備註
 
 - 本機測試（不需要 Google 帳號）：`node dev/server.js` → 前台 `http://localhost:8770/play/?event=EBM27`（自助＋先登記）、`BOOTH1`（攤位＋不登記）、`AFTER1`（攤位＋中獎後登記）、`SCR1`／`SLOT1`／`GACHA1`（三款遊戲）；遊戲試玩 `http://localhost:8770/play/?preview=wheel`；後台 `http://localhost:8770/admin/`（管理者 admin@example.com、業務 sales@example.com，會先建好示範資料；`SEED=0` 不建）；API 測試台 `http://localhost:8770/dev/api-test.html`。資料只存在記憶體。
-- 後端自我測試：`node dev/selftest.js`（權限、每日次數、測試資料清除、獎池不超抽等驗收項目）。
+- 後端自我測試：`node dev/selftest.js`（權限、協作人員、每日次數、測試資料清除、獎池不超抽、報表、推廣表單規則等驗收項目）。
+- 遊戲模組放在 `play/games/`，共同介面：`init(container, prizes, theme)`、`start()`、`play(resultPrize) → Promise`、`cancel()`、`reset()`、`destroy()`；新增遊戲時照這個介面寫一個檔案，並在 `admin/js/ui.js` 的 `GAMES` 與 `gas/Events.gs` 的 `GAME_TYPES` 加上代號。抽抽樂的人物圖在 `play/games/chouchou/`，直接覆蓋 PNG 即可換圖。
 - API 格式：POST、`Content-Type: text/plain`，body `{action, token, payload}`，回傳 `{ok, data, error, code}`。所有 action 列在 `gas/Code.gs` 的 `routes_()`。
 - 時區一律 `Asia/Taipei`；時間存成文字 `yyyy-MM-dd HH:mm:ss`。
 
@@ -224,4 +279,4 @@ window.APP_CONFIG = {
 - [x] 第 4 階段：刮刮樂、拉霸機、彩球機＋各遊戲音效＋特別獎慶祝動畫＋後台試玩
 - [x] 第 5 階段：推廣頁（試用申請／產品資訊表單）、潛在客戶名單（篩選、匯出 Excel）、攤位大螢幕展示頁
 - [x] 第 6 階段：成果報表（統計、時段／單位／身分分布）、Excel 匯出（4 個工作表）、16:9 成果圖卡
-- [ ] 第 7 階段：總覽頁、細節打磨
+- [x] 第 7 階段：總覽頁（本月統計、活動卡片快速連結）、細節打磨、README

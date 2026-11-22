@@ -226,7 +226,8 @@ function apiEventsList_(p, user) {
       prizeTotal: real.reduce(function (s, x) { return s + x.quantity; }, 0),
       prizeRemaining: real.reduce(function (s, x) { return s + x.remaining; }, 0),
       drawCount: ds.length,
-      todayDrawCount: ds.filter(function (d) { return d.drawnAt.indexOf(today) === 0; }).length
+      todayDrawCount: ds.filter(function (d) { return d.drawnAt.indexOf(today) === 0; }).length,
+      todayParticipants: todayPeople_(ev, ds, today)
     });
   }).sort(function (a, b) { return a.startAt < b.startAt ? 1 : -1; });
 }
@@ -343,4 +344,34 @@ function apiEventsClearTest_(p, user) {
     cacheRemove_('pub_' + ev.eventCode);
     return { draws: draws.length, participants: participants.length, leads: leads.length };
   });
+}
+
+/** 今日參與：先登記再抽以「人」計（同一人多次只算一次），其他模式以抽獎次數計 */
+function todayPeople_(ev, ds, today) {
+  var todays = ds.filter(function (d) { return d.drawnAt.indexOf(today) === 0; });
+  if (ev.regMode !== 'before') return todays.length;
+  var seen = {};
+  todays.forEach(function (d) { if (d.participantId) seen[d.participantId] = 1; });
+  return Object.keys(seen).length;
+}
+
+/** 總覽：我負責的活動（含協作）本月參與人數、抽獎次數、潛在客戶新增數（不含測試資料） */
+function apiDashboard_(p, user) {
+  var month = today_().slice(0, 7);
+  var mine = {};
+  all_('Events').forEach(function (e) { if (user.userId === e.ownerId || isCoOwner_(user, e)) mine[e.eventId] = e; });
+  var inMonth = function (t) { return String(t || '').indexOf(month) === 0; };
+  var people = where_('Participants', function (x) { return mine[x.eventId] && !x.isTest && inMonth(x.registeredAt); });
+  var draws = where_('Draws', function (d) { return mine[d.eventId] && !d.isTest && inMonth(d.drawnAt); });
+  // 參與人數：先登記再抽的活動算登記人數；不登記／中獎後登記的活動算抽獎次數
+  var participants = people.filter(function (x) { return mine[x.eventId].regMode === 'before'; }).length +
+    draws.filter(function (d) { return mine[d.eventId].regMode !== 'before'; }).length;
+  var leads = where_('Leads', function (l) { return mine[l.eventId] && !l.isTest && inMonth(l.createdAt); });
+  return {
+    month: month,
+    participants: participants,
+    draws: draws.length,
+    leads: leads.length,
+    recommend: leads.filter(function (l) { return l.type === 'recommend'; }).length
+  };
 }

@@ -216,6 +216,14 @@ console.log('\n[報表]');
   check('單位分布：合併空白、前 N 名＋其他', tops[0].name === '臺大' && tops[0].count === 2 && tops[tops.length - 1].name === '其他' && tops.length === 4, tops);
 }
 
+console.log('\n[總覽]');
+{
+  const db = ok('dashboard.get', {}, amy.token);
+  check('本月統計有數字', db.draws > 0 && db.leads === 2 && db.recommend === 1, db);
+  const ls = ok('events.list', {}, amy.token).find((e) => e.eventId === e1.event.eventId);
+  check('今日參與人數（以人計）', typeof ls.todayParticipants === 'number' && ls.todayParticipants <= ls.todayDrawCount, [ls.todayParticipants, ls.todayDrawCount]);
+}
+
 console.log('\n[停用帳號]');
 ok('users.save', { userId: ben.user.userId, role: 'sales', status: 'disabled' }, A);
 check('停用後原本的登入立即失效', call('events.list', {}, ben.token).code === 'AUTH');

@@ -4,7 +4,7 @@ import { $, esc, emptyHtml, ICON, badge, STATE, GAMES, fmtRange } from '../ui.js
 
 export function eventTable(list, app, { showClient = true } = {}) {
   return `<div class="table-wrap"><table class="table">
-    <thead><tr><th>活動</th>${showClient ? '<th>客戶</th>' : ''}<th>時間</th><th>遊戲</th><th>前台狀態</th><th class="num">已抽 / 獎品</th><th>業務</th></tr></thead>
+    <thead><tr><th>活動</th>${showClient ? '<th>客戶</th>' : ''}<th>時間</th><th>遊戲</th><th>前台狀態</th><th class="num">已抽 / 獎品</th><th>業務</th><th></th></tr></thead>
     <tbody>${list.map((e) => `<tr class="clickable" data-id="${esc(e.eventId)}">
       <td><b>${esc(e.title)}</b><div class="small muted" style="font-family:var(--font-mono);letter-spacing:.05em">${esc(e.eventCode)}
         ${e.status === 'draft' ? ' <span class="badge">草稿</span>' : ''}${e.isTestMode ? ' <span class="badge yellow">測試中</span>' : ''}</div></td>
@@ -14,6 +14,7 @@ export function eventTable(list, app, { showClient = true } = {}) {
       <td>${badge(STATE, e.state)}</td>
       <td class="num small">${e.prizeTotal - e.prizeRemaining} / ${e.prizeTotal}</td>
       <td class="small">${esc(e.ownerName)}${(e.coOwnerNames || []).length ? `<div class="muted">協作：${e.coOwnerNames.map(esc).join('、')}</div>` : ''}${e.canEdit ? '' : ' <span class="badge" title="不是你負責的活動，只能檢視">唯讀</span>'}</td>
+      <td class="actions"><a class="btn sm ghost" href="#/events/${esc(e.eventId)}/report" title="成果報表" data-stop>${ICON.chart}報表</a></td>
     </tr>`).join('')}</tbody></table></div>`;
 }
 
@@ -60,6 +61,7 @@ export async function render(root, _p, app) {
   }
   draw();
   $('#list').addEventListener('click', (e) => {
+    if (e.target.closest('[data-stop]')) return;
     const tr = e.target.closest('tr[data-id]');
     if (tr) app.go('#/events/' + tr.dataset.id);
   });
