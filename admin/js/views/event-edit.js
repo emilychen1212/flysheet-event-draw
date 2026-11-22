@@ -69,6 +69,7 @@ export async function render(root, [eventId], app) {
       <div class="head-right">
         ${isNew ? '' : `<div class="actions">
           ${ro ? '' : `<button class="btn" id="btnCopy">${ICON.copy}複製活動</button>`}
+          <a class="btn" href="#/events/${esc(ev.eventId)}/report">${ICON.chart}成果報表</a>
           <button type="button" class="btn" data-jump="publish">${ICON.qr}網址與 QR code</button>
           ${manage && ev.status === 'draft' ? `<button class="btn danger" id="btnDelete">${ICON.trash}刪除</button>` : ''}
         </div>`}

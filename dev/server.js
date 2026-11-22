@@ -46,6 +46,23 @@ if (process.env.SEED !== '0') {
   call('public.submitLead', { eventCode: 'EBM27', type: 'trial', productName: 'UpToDate', name: '王小明', organization: '臺大醫院 內科部', email: 'ming@example.com', note: '想試用一個月' });
   call('public.submitLead', { eventCode: 'EBM27', type: 'recommend', productName: 'ClinicalKey', message: '查電子書很方便，希望圖書館採購', name: '林護理師', organization: '臺大醫院 護理部', phone: '0912345678' });
   call('public.submitLead', { eventCode: 'EBM27', type: 'training', productName: 'JoVE', name: '張老師', organization: '臺大 醫學系', email: 'chang@example.com' });
+  // 報表示範：60 位參與者、兩天、不同時段與單位
+  {
+    const orgs = ['臺大醫院', '臺大醫院', '臺大醫院', '馬偕醫院', '馬偕醫院', '北醫附醫', '長庚醫院', '國泰醫院', '臺大 醫學系', '陽明交大', '亞東醫院', '振興醫院', '萬芳醫院', '輔大醫院'];
+    const ids = ['醫師', '護理師', '護理師', '學生', '館員', '老師', '其他'];
+    const days = ['2026-11-20', '2026-11-21'];
+    for (let i = 0; i < 60; i++) {
+      const r = call('public.register', { eventCode: 'EBM27', name: '參與者' + i, email: `p${i}@example.com`, organization: orgs[i % orgs.length],
+        identity: ids[i % ids.length], identityOther: ids[i % ids.length] === '其他' ? '藥師' : '', privacyConsent: true, wantsProductInfo: i % 3 !== 0 });
+      if (r.ticket) call('public.draw', { eventCode: 'EBM27', ticket: r.ticket, deviceType: i % 4 ? 'mobile' : 'desktop' });
+    }
+    g.resetTables_();
+    const peak = [10, 10, 10, 12, 12, 12, 12, 13, 15, 15, 16, 16];
+    g.all_('Draws').filter((d) => d.prizeName && !d.isTest).forEach((d, i) => {
+      const h = peak[i % peak.length], m = (i * 7) % 60;
+      g.update_('Draws', d.drawId, { drawnAt: `${days[i % 2]} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00` });
+    });
+  }
   // PM 帳號，並指派為 EBM27 的協作人員
   call('users.save', { email: 'pm@example.com', name: '陳 PM', role: 'pm', status: 'active' }, admin);
   const pmId = call('users.options', {}, admin).find((u) => u.email === 'pm@example.com').userId;

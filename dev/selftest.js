@@ -8,7 +8,7 @@ const path = require('path');
 const { FakeSpreadsheet, makeProject } = require('./gas-fakes');
 
 const GAS = path.join(__dirname, '..', 'gas');
-const files = ['Config.gs', 'Utils.gs', 'Db.gs', 'Setup.gs', 'Auth.gs', 'Clients.gs', 'Events.gs', 'Public.gs', 'Leads.gs', 'Code.gs']
+const files = ['Config.gs', 'Utils.gs', 'Db.gs', 'Setup.gs', 'Auth.gs', 'Clients.gs', 'Events.gs', 'Public.gs', 'Leads.gs', 'Reports.gs', 'Code.gs']
   .map((f) => path.join(GAS, f));
 const all = fs.readdirSync(GAS).filter((f) => f.endsWith('.gs'));
 all.forEach((f) => { if (!files.some((x) => x.endsWith('/' + f))) throw new Error('selftest 沒載入 ' + f); });
@@ -195,6 +195,26 @@ check('協作人員不能刪除活動', call('events.delete', { eventId: e1.even
 check('列表標示是我的活動', ok('events.list', {}, pm.token).find((e) => e.eventId === e1.event.eventId).isMine === true);
 check('管理者看得到全部', ok('leads.list', {}, A).length === 2);
 check('未登入不能讀名單', call('leads.list', {}).code === 'AUTH');
+
+console.log('\n[報表]');
+{
+  const rp = ok('reports.get', { eventId: e1.event.eventId }, amy.token);
+  const realDraws = rows('Draws').filter((d) => d.eventId === e1.event.eventId && !d.isTest).length;
+  check('抽獎次數只算正式資料', rp.draws === realDraws, [rp.draws, realDraws]);
+  check('先登記再抽：參與人數以人計', rp.participantsBy === 'people' && rp.participants === rows('Participants').filter((x) => x.eventId === e1.event.eventId && !x.isTest).length);
+  check('各獎項發出數加總 = 抽獎次數', rp.prizes.reduce((s, x) => s + x.issued, 0) === rp.draws);
+  check('時段分布加總 = 抽獎次數', Object.values(rp.byDay).flat().reduce((s, x) => s + x, 0) === rp.draws);
+  check('潛在客戶數', rp.leads.total === 2 && rp.leads.byType.recommendNew === 1 && rp.leads.byType.training === 1, rp.leads);
+  check('擁有者可看明細', rp.canSeeDetail === true && ok('reports.detail', { eventId: e1.event.eventId }, amy.token).participants.length === rp.registered);
+  const other = ok('auth.login', { idToken: 'dev:boss@example.com' });
+  ok('users.save', { email: 'carl@example.com', name: 'Carl', role: 'sales', status: 'active' }, other.token);
+  const carl = ok('auth.login', { idToken: 'dev:carl@example.com' });
+  check('其他業務可以看統計', ok('reports.get', { eventId: e1.event.eventId }, carl.token).draws === rp.draws);
+  check('其他業務看不到明細（個資）', call('reports.detail', { eventId: e1.event.eventId }, carl.token).code === 'FORBIDDEN');
+  check('不登記活動以抽獎次數計', ok('reports.get', { eventId: e2.event.eventId }, amy.token).participantsBy === 'draws');
+  const tops = g.topCounts_(['臺大', '臺大 ', '馬偕', '', 'A', 'B', 'C'], 3, '未填寫');
+  check('單位分布：合併空白、前 N 名＋其他', tops[0].name === '臺大' && tops[0].count === 2 && tops[tops.length - 1].name === '其他' && tops.length === 4, tops);
+}
 
 console.log('\n[停用帳號]');
 ok('users.save', { userId: ben.user.userId, role: 'sales', status: 'disabled' }, A);

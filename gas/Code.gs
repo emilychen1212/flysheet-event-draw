@@ -41,7 +41,11 @@ function routes_() {
     'events.clearTest': { fn: apiEventsClearTest_ },
 
     // 潛在客戶
-    'leads.list': { fn: apiLeadsList_ }
+    'leads.list': { fn: apiLeadsList_ },
+
+    // 報表
+    'reports.get': { fn: apiReportsGet_ },
+    'reports.detail': { fn: apiReportsDetail_ }
   };
 }
 

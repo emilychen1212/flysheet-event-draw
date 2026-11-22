@@ -24,6 +24,7 @@ const ROUTES = [
   [/^\/events$/, 'events', 'event'],
   [/^\/events\/new$/, 'event-edit', 'event'],
   [/^\/events\/([\w]+)$/, 'event-edit', 'event'],
+  [/^\/events\/([\w]+)\/report$/, 'report', 'event'],
   [/^\/clients$/, 'clients', 'client'],
   [/^\/clients\/([\w]+)$/, 'client-detail', 'client'],
   [/^\/leads$/, 'leads', 'lead'],
