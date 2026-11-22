@@ -2,7 +2,8 @@
  * 前台抽獎頁
  *   /play/?event=活動代碼               抽獎頁
  *   /play/?event=活動代碼&view=screen   展示頁（第 5 階段）
- * 流程：〔登記〕→ 遊戲 → 結果 →（攤位）下一位／（自助）再抽一次
+ * 流程：〔登記〕→ 遊戲 → 結果 →（攤位）下一位／（自助）換另一位登記
+ * 自助掃碼不提供「再抽一次」：同一人要再抽必須重新登記，次數上限由後端判斷。
  * 中獎結果只來自後端 public.draw，前端只負責演出。
  */
 import { api } from '../assets/js/api.js';
@@ -94,8 +95,9 @@ function showState(state, message) {
 function showLimit(message) {
   S.ticket = '';
   stage().innerHTML = `<div class="panel p-msg"><div class="big">🌙</div><h2>${esc(message || '今天的抽獎次數已用完，明天再來試試手氣！')}</h2>
-    ${S.ev.drawMode === 'booth' ? '<div style="margin-top:18px"><button class="p-btn navy" id="next">下一位</button></div>' : ''}</div>`;
+    <div style="margin-top:18px">${S.ev.drawMode === 'booth' ? '<button class="p-btn navy" id="next">下一位</button>' : '<button class="p-btn ghost" id="switchPerson">換另一位登記</button>'}</div></div>`;
   $('#next')?.addEventListener('click', nextPerson);
+  $('#switchPerson')?.addEventListener('click', nextPerson);
 }
 
 /* ---------- 登記表 ---------- */
@@ -308,7 +310,11 @@ function showResult(res) {
   if (booth) {
     actions = '<button class="p-btn navy" id="next">下一位</button>';
   } else if (ev.regMode === 'before') {
-    actions = S.ticket ? `<button class="p-btn" id="again">再抽一次（今天還有 ${S.remainingToday} 次）</button>` : '<div class="muted small" style="color:var(--text-muted);font-size:14px">今天的抽獎次數已用完，明天再來試試手氣！</div>';
+    // 不提供「再抽一次」，避免一直抽到想要的獎品為止；要換人用同一支手機時可以按「換另一位登記」
+    const left = S.remainingToday > 0
+      ? `今天還有 ${S.remainingToday} 次機會，晚點可以重新登記再來抽！`
+      : '今天的抽獎次數已用完，明天再來試試手氣！';
+    actions = `<div style="color:var(--text-muted);font-size:14px">${left}</div>` + '<button class="p-btn ghost" id="switchPerson">換另一位登記</button>';
   }
   const claimForm = ev.regMode === 'after' && !p.isLose && res.claimToken;
   const box = $('#controls');
@@ -321,7 +327,7 @@ function showResult(res) {
   </div>`;
   box.scrollIntoView({ behavior: 'smooth', block: 'center' });
   $('#next')?.addEventListener('click', nextPerson);
-  $('#again')?.addEventListener('click', () => { if (S.game.reset) S.game.reset(); showStartButton(); });
+  $('#switchPerson')?.addEventListener('click', nextPerson);
   if (!claimForm) showPromo(box, p);
 
   if (claimForm) {
