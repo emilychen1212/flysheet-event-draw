@@ -166,12 +166,11 @@ export async function render(root, [eventId], app) {
       <h2 class="card-title"><span><span class="num">5</span>登記設定</span></h2>
       <div class="choice-group">
         ${Object.entries(REG_MODES).map(([k, m]) => `<label class="choice"><input type="radio" name="regMode" value="${k}" ${dis}>
-          <span class="t">${m.label}</span><span class="d">${m.desc}</span></label>`).join('')}
+          <span class="t">${m.label}</span><span class="d">${m.desc}</span>
+          ${k === 'before' ? `<span class="daily" id="dailyBox">每人每日可抽 <input class="input" type="number" name="dailyLimit" min="1" max="99" ${dis}> 次
+            <span class="hint">以 Email／手機辨識同一人</span></span>` : ''}</label>`).join('')}
       </div>
       <div id="regDetail">
-        <div class="field" id="dailyBox" style="margin-top:16px;max-width:260px"><label>每人每日可抽次數</label>
-          <input class="input" type="number" name="dailyLimit" min="1" max="99" ${dis}>
-          <div class="hint">以 Email 或手機辨識同一人，台北時間午夜換日</div></div>
         <div style="margin-top:20px" id="regBox">${regFieldsHtml(ev.regFields, { editable: !ro })}</div>
       </div>
     </section>
@@ -180,9 +179,8 @@ export async function render(root, [eventId], app) {
 
     <section class="card" id="s-promo">
       <h2 class="card-title"><span><span class="num">7</span>本次推廣產品</span></h2>
-      <p class="muted small" style="margin-top:-6px">填這次活動主要推廣的產品，並標示客戶是否已購買。已購買的產品在前台會顯示「想學更多使用技巧」，尚未購買的顯示「有興趣了解更多」。</p>
-      <div id="promoList" style="display:grid;gap:10px"></div>
-      ${ro ? '' : `<button type="button" class="btn sm" id="addPromo" style="margin-top:10px">${ICON.plus}新增推廣產品</button>`}
+      <p class="muted small" style="margin-top:-6px">下方是前台卡片的預覽；點卡片右上角 ✎ 編輯。已購買的產品前台按鈕是「想學更多使用技巧」，尚未購買的是「有興趣了解更多」。</p>
+      <div class="mgrid" id="promoList"></div>
       <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--gray-200)">
         <div id="promoOff" class="muted small">推廣頁只在「自助掃碼」時顯示：參與者抽完獎，可以看到這些產品並留下需求。攤位操作時清單一樣會保留。</div>
         <div id="promoOn"><label class="switch"><input type="checkbox" name="promoEnabled" ${dis}><span class="track"></span>抽完獎後，在前台顯示推廣頁</label></div>
@@ -403,36 +401,56 @@ export async function render(root, [eventId], app) {
   /* ---------- 登記欄位 ---------- */
   if (!ro) bindRegFields($('#regBox'), markDirty);
 
-  /* ---------- 推廣產品 ---------- */
+  /* ---------- 推廣產品（預覽小卡片＋編輯視窗） ---------- */
   const promo = (ev.promoProducts || []).map((p) => ({ ...p }));
   const drawPromo = () => {
-    $('#promoList').innerHTML = promo.length ? promo.map((p, i) => `<div class="custom-q" data-i="${i}">
-      <div class="row">
-        <input class="input" data-k="name" value="${esc(p.name)}" placeholder="產品名稱，例：UpToDate" style="flex:1;min-width:160px" maxlength="100" ${dis}>
-        <div class="seg"><label><input type="radio" name="owned_${i}" data-owned="0" ${p.owned ? '' : 'checked'} ${dis}><span>尚未購買</span></label><label><input type="radio" name="owned_${i}" data-owned="1" ${p.owned ? 'checked' : ''} ${dis}><span>已購買</span></label></div>
-        ${ro ? '' : `<button type="button" class="btn sm ghost" data-del title="刪除">${ICON.trash}</button>`}
-      </div>
-      <input class="input" data-k="intro" value="${esc(p.intro)}" placeholder="一句話介紹，例：全球臨床醫師最信賴的實證醫學工具" maxlength="200" ${dis}>
-      <input class="input" data-k="url" value="${esc(p.url)}" placeholder="產品連結（選填），https://…" maxlength="500" ${dis}>
-    </div>`).join('') : '<div class="muted small">還沒有推廣產品</div>';
+    $('#promoList').innerHTML = promo.map((p, i) => `<article class="mcard pcard ${p.owned ? 'owned' : ''}" data-i="${i}" ${ro ? '' : 'tabindex="0" role="button" aria-label="編輯 ' + esc(p.name) + '"'}>
+        <div class="mc-top"><b class="mc-name">${esc(p.name) || '（未命名）'}</b>${p.owned ? '<span class="tag ok">已購買</span>' : ''}
+          ${ro ? '' : `<button type="button" class="mc-edit" data-edit title="編輯">${ICON.edit}</button>`}</div>
+        <div class="mc-desc">${esc(p.intro) || '<span class="muted">（還沒有介紹）</span>'}</div>
+        ${p.url ? '<div class="mc-link">產品介紹 ↗</div>' : ''}
+        <div class="mc-btn ${p.owned ? 'navy' : ''}">${p.owned ? '想學更多使用技巧' : '有興趣了解更多'}</div>
+      </article>`).join('') + (ro ? '' : `<button type="button" class="mcard madd" id="addPromo">${ICON.plus}<span>新增推廣產品</span></button>`) +
+      (ro && !promo.length ? '<div class="muted small">還沒有推廣產品</div>' : '');
+  };
+  const editPromo = async (i) => {
+    const isNew = i === undefined;
+    const p = isNew ? { name: '', intro: '', url: '', owned: false } : promo[i];
+    const r = await modal({
+      title: isNew ? '新增推廣產品' : '編輯推廣產品',
+      body: `<div class="field"><label>產品名稱<span class="req">*</span></label><input class="input" id="pName" maxlength="100" value="${esc(p.name)}" placeholder="例：UpToDate"></div>
+        <div class="field"><span class="label">客戶狀態</span><div class="seg" style="align-self:flex-start">
+          <label><input type="radio" name="pOwned" value="0" ${p.owned ? '' : 'checked'}><span>尚未購買</span></label>
+          <label><input type="radio" name="pOwned" value="1" ${p.owned ? 'checked' : ''}><span>已購買</span></label></div></div>
+        <div class="field"><label>一句話介紹</label><textarea class="input" id="pIntro" maxlength="200" style="min-height:70px" placeholder="例：全球臨床醫師最信賴的實證醫學工具">${esc(p.intro)}</textarea></div>
+        <div class="field"><label>產品連結（選填）</label><input class="input" id="pUrl" maxlength="500" value="${esc(p.url)}" placeholder="https://…"></div>`,
+      actions: [
+        ...(isNew ? [] : [{ label: '刪除', kind: 'danger', value: 'del' }]),
+        { label: '取消', kind: 'ghost', value: null },
+        { label: '完成', kind: 'primary', onClick: (m) => {
+          const name = $('#pName', m).value.trim();
+          const url = $('#pUrl', m).value.trim();
+          if (!name) { toastErr('請填寫產品名稱'); return false; }
+          if (url && !/^https?:\/\//i.test(url)) { toastErr('產品連結要以 http:// 或 https:// 開頭'); return false; }
+          return { name, url, intro: $('#pIntro', m).value.trim(), owned: $('input[name=pOwned]:checked', m).value === '1' };
+        } }
+      ]
+    });
+    if (r === 'del') { promo.splice(i, 1); drawPromo(); markDirty(); return; }
+    if (!r || typeof r !== 'object') return;
+    if (isNew) promo.push(r); else Object.assign(promo[i], r);
+    drawPromo(); markDirty();
   };
   drawPromo();
-  $('#promoList').addEventListener('input', (e) => {
-    const box = e.target.closest('[data-i]');
-    if (box && e.target.dataset.k) promo[box.dataset.i][e.target.dataset.k] = e.target.value;
-  });
-  $('#promoList').addEventListener('change', (e) => {
-    const box = e.target.closest('[data-i]');
-    if (box && e.target.dataset.owned !== undefined) promo[box.dataset.i].owned = e.target.dataset.owned === '1';
-  });
   $('#promoList').addEventListener('click', (e) => {
-    const box = e.target.closest('[data-i]');
-    if (box && e.target.closest('[data-del]')) { promo.splice(Number(box.dataset.i), 1); drawPromo(); markDirty(); }
+    if (ro) return;
+    if (e.target.closest('#addPromo')) return editPromo();
+    const card = e.target.closest('.pcard');
+    if (card) editPromo(Number(card.dataset.i));
   });
-  $('#addPromo')?.addEventListener('click', () => {
-    promo.push({ name: '', intro: '', url: '', owned: false });
-    drawPromo(); markDirty();
-    $$('#promoList [data-k=name]').pop()?.focus();
+  $('#promoList').addEventListener('keydown', (e) => {
+    const card = e.target.closest('.pcard');
+    if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); editPromo(Number(card.dataset.i)); }
   });
 
   /* ---------- 儲存 ---------- */
