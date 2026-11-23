@@ -12,13 +12,21 @@ const PT_KEY = (code) => 'fed.pt.' + code;
 export function savePt(code, pt) { try { pt ? localStorage.setItem(PT_KEY(code), pt) : localStorage.removeItem(PT_KEY(code)); } catch (e) { /* 無痕模式 */ } }
 export function loadPt(code) { try { return localStorage.getItem(PT_KEY(code)) || ''; } catch (e) { return ''; } }
 
-function rulesText(ev, tasks) {
-  if (ev.taskMode === 'any') return '完成任一個任務，就能參加抽獎';
-  const req = tasks.filter((t) => t.required).length;
-  const n = ev.taskMinOptional || 0;
-  if (req && n) return `完成 ${req} 個必做任務＋至少 ${n} 個選做任務，就能參加抽獎`;
+/** 規則一律由任務卡的必做／選做決定（數字來自後端的進度） */
+function rulesText(p) {
+  const req = p.requiredTotal || 0;
+  const n = p.optionalNeed || 0;
+  if (req && n) return `完成 ${req} 個必做任務＋任選 ${n} 個選做任務，就能參加抽獎`;
   if (req) return `完成 ${req} 個必做任務，就能參加抽獎`;
-  return `完成至少 ${n} 個任務，就能參加抽獎`;
+  return n === 1 ? '任選 1 個任務完成，就能參加抽獎' : `任選 ${n} 個任務完成，就能參加抽獎`;
+}
+
+function progressText(p) {
+  if (p.eligible) return '🎉 已達抽獎資格！';
+  if (p.requiredLeft && p.optionalLeft) return `還差 <b>${p.requiredLeft}</b> 個必做、<b>${p.optionalLeft}</b> 個選做任務就能抽獎`;
+  if (p.requiredLeft) return `還差 <b>${p.requiredLeft}</b> 個必做任務就能抽獎`;
+  if (p.requiredTotal) return `必做都完成了！再完成 <b>${p.optionalLeft}</b> 個選做就能抽獎`;
+  return `再完成 <b>${p.optionalLeft}</b> 個任務就能抽獎`;
 }
 
 /**
@@ -50,7 +58,7 @@ export function renderTasks(stage, o) {
     stage.innerHTML = `<div class="panel t-panel">
       <div class="t-step">步驟 1／2</div>
       <h2>選擇想體驗的資料庫 🔍</h2>
-      <p class="lead">可以複選。${esc(rulesText(ev, tasks))}。</p>
+      <p class="lead">可以複選。${esc(rulesText(state.progress))}。</p>
       <div class="t-dbs">${dbs.map((d) => `<label class="t-db ${d.required ? 'req' : ''}">
         <input type="checkbox" value="${esc(d.dbName)}" ${chosen.has(d.dbName) || d.required ? 'checked' : ''} ${d.required ? 'disabled' : ''}>
         <span class="box"><span class="nm">${esc(d.dbName)}${d.required ? '<em>必做</em>' : ''}${d.count > 1 ? `<small class="cnt">${d.count} 個任務</small>` : ''}</span>${d.intro ? `<span class="in">${esc(d.intro)}</span>` : ''}</span>
@@ -74,20 +82,21 @@ export function renderTasks(stage, o) {
     const done = new Set(state.progress.completed);
     const shown = tasks.filter((t) => t.required || sel.has(t.dbName));
     const p = state.progress;
-    const total = ev.taskMode === 'any' ? 1 : Math.max(1, tasks.filter((t) => t.required).length + (ev.taskMinOptional || 0));
-    const pct = p.eligible ? 100 : Math.round(Math.min(1, (total - p.need) / total) * 100);
+    const total = Math.max(1, (p.requiredTotal || 0) + (p.optionalNeed || 0));
+    const pct = p.eligible ? 100 : Math.round(Math.max(0, Math.min(1, (total - p.need) / total)) * 100);
+    const optTag = p.optionalNeed ? `選做（任選 ${p.optionalNeed} 個）` : '選做（可不做）';
     stage.innerHTML = `<div class="panel t-panel">
       <div class="t-step">步驟 2／2</div>
       <div class="t-progress ${p.eligible ? 'ok' : ''}">
-        <div class="t-ptext">${p.eligible ? '🎉 已達抽獎資格！' : `再完成 <b>${p.need}</b> 個任務就能抽獎`}</div>
+        <div class="t-ptext">${progressText(p)}</div>
         <div class="t-bar"><i style="width:${pct}%"></i></div>
-        <div class="t-rule">${esc(rulesText(ev, tasks))}</div>
+        <div class="t-rule">${esc(rulesText(p))}</div>
       </div>
       ${p.eligible ? '<button class="p-btn t-go" id="tGo">開始抽獎！</button>' : ''}
       <div class="t-cards">${shown.map((t) => {
         const ok = done.has(t.eventTaskId);
         return `<article class="t-card ${ok ? 'done' : ''} ${t.required ? 'req' : ''}" data-id="${esc(t.eventTaskId)}">
-          <div class="t-top"><span class="db">${esc(t.dbName)}</span>${t.required ? '<span class="tag req">必做</span>' : '<span class="tag">選做</span>'}${ok ? '<span class="tag ok">✓ 已完成</span>' : ''}</div>
+          <div class="t-top"><span class="db">${esc(t.dbName)}</span>${t.required ? '<span class="tag req">必做</span>' : `<span class="tag">${optTag}</span>`}${ok ? '<span class="tag ok">✓ 已完成</span>' : ''}</div>
           <h3>${esc(t.title)}</h3>
           ${t.description ? `<p>${esc(t.description)}</p>` : ''}
           ${t.url ? `<a class="t-open" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.actionText || '前往 ' + t.dbName)} ${ARROW}</a>` : ''}

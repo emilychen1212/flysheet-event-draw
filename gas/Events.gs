@@ -124,6 +124,7 @@ function cleanEvent_(p, existing, user) {
   ev.soundDefault = oneOf_(p.soundDefault, ['on', 'off'], 'on');
   ev.isTestMode = bool_(p.isTestMode);
   ev.taskMode = oneOf_(p.taskMode, TASK_MODES, 'none');
+  if (ev.taskMode !== 'none') ev.taskMode = 'cards';   // 一律依任務卡的必做／選做判斷
   ev.taskMinOptional = Math.min(30, Math.max(0, int_(p.taskMinOptional, 0)));
   if (ev.taskMode !== 'none' && ev.regMode !== 'before') throw appError_('體驗任務要搭配「先登記再抽」，請到登記設定切換');
   // 協作人員：只有擁有者／管理者能改，協作人員自己存檔時保留原名單

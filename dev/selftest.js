@@ -299,13 +299,29 @@ console.log('\n[體驗任務]');
   const again = ok('public.register', { eventCode: 'TASK1', name: '任務王', email: 'task@example.com', organization: '清大', identity: '學生', privacyConsent: true });
   check('同一人再登記：進度保留、但受每日次數限制', again.progress.eligible === true && again.limitReached === true && !again.ticket);
 
-  // 模式 A：完成任一任務
-  ok('events.save', { event: Object.assign({}, saved.data.event, { taskMode: 'any', eventCode: 'TASK1' }), prizes: saved.data.prizes, tasks: at }, amy.token);
+  // 依任務卡判斷：全部改成選做、N＝0 → 系統自動當成至少 1 個（完成任一任務）
+  const allOpt = at.map((t) => Object.assign({}, t, { required: false }));
+  const sv2 = ok('events.save', { event: Object.assign({}, saved.data.event, { taskMode: 'cards', taskMinOptional: 0, eventCode: 'TASK1' }), prizes: saved.data.prizes, tasks: allOpt }, amy.token);
+  check('沒有必做時 N 自動至少 1', sv2.event.taskMode === 'cards');
   check('修改活動時不重填 PIN 也保留原本的 PIN', rows('EventTasks').find((t) => t.eventTaskId === idUp).pinHash.length === 64);
   const r2 = ok('public.register', { eventCode: 'TASK1', name: '小明', email: 'any@example.com', organization: '清大', identity: '學生', privacyConsent: true });
-  check('任一任務模式：還差 1 個', r2.progress.need === 1);
+  check('全部選做：還差 1 個選做', r2.progress.need === 1 && r2.progress.optionalLeft === 1 && r2.progress.requiredLeft === 0, r2.progress);
   const a2 = ok('public.completeTask', { eventCode: 'TASK1', pt: r2.pt, eventTaskId: idAc, pin: '1357' });
-  check('任一任務模式：完成一個就有資格', a2.progress.eligible === true && !!a2.ticket);
+  check('全部選做：完成一個就有資格', a2.progress.eligible === true && !!a2.ticket);
+
+  // 舊活動「完成任一任務」＋有必做卡：必做照樣要完成
+  ok('events.save', { event: Object.assign({}, saved.data.event, { taskMode: 'cards', taskMinOptional: 1, eventCode: 'TASK1' }), prizes: saved.data.prizes, tasks: at }, amy.token);
+  g.update_('Events', evId, { taskMode: 'any', taskMinOptional: 0 });
+  g.cacheRemove_('tbl_Events'); g.cacheRemove_('pub_TASK1');
+  const r3 = ok('public.register', { eventCode: 'TASK1', name: '舊設定', email: 'legacy@example.com', organization: '清大', identity: '學生', privacyConsent: true });
+  check('舊「任一任務」＋必做：要先完成必做', r3.progress.requiredLeft === 1 && r3.progress.optionalLeft === 0 && r3.progress.need === 1, r3.progress);
+  const a3 = ok('public.completeTask', { eventCode: 'TASK1', pt: r3.pt, eventTaskId: idAc, pin: '1357' });
+  check('舊「任一任務」＋必做：只做選做還不夠', a3.progress.eligible === false);
+  const a4 = ok('public.completeTask', { eventCode: 'TASK1', pt: r3.pt, eventTaskId: idUp, pin: '2468' });
+  check('舊「任一任務」＋必做：完成必做才有資格', a4.progress.eligible === true);
+  check('進度欄位：必做總數、選做門檻', a4.progress.requiredTotal === 1 && a4.progress.optionalNeed === 0, a4.progress);
+  ok('events.save', { event: Object.assign({}, saved.data.event, { taskMode: 'cards', taskMinOptional: 1, eventCode: 'TASK1' }), prizes: saved.data.prizes, tasks: at }, amy.token);
+  check('選做 N 不能超過選做數量', !call('events.save', { event: Object.assign({}, saved.data.event, { taskMode: 'cards', taskMinOptional: 5, eventCode: 'TASK1' }), prizes: saved.data.prizes, tasks: at }, amy.token).ok);
 
   // 沒設任務的活動維持原流程
   const plain = ok('public.register', Object.assign({}, reg, { email: 'plain@example.com' }));
@@ -319,10 +335,10 @@ console.log('\n[體驗任務]');
   const rt = ok('reports.get', { eventId: evId }, amy.token).tasks;
   const rUp = rt.tasks.find((t) => t.dbName === 'UpToDate');
   const rJo = rt.tasks.find((t) => t.dbName === 'JoVE');
-  check('報表：資料庫選擇人數', rt.dbs.find((d) => d.dbName === 'JoVE').selected === 1 && rt.registered === 2, rt.dbs);
-  check('報表：必做任務分母是全部登記者', rUp.required && rUp.denominator === 2 && rUp.completed === 1 && rUp.dropped === 1, rUp);
+  check('報表：資料庫選擇人數', rt.dbs.find((d) => d.dbName === 'JoVE').selected === 1, rt.dbs);
+  check('報表：必做任務分母是全部登記者', rUp.required && rUp.denominator === 3 && rUp.completed === 2 && rUp.dropped === 1, rUp);
   check('報表：選做任務分母是選該資料庫的人', !rJo.required && rJo.denominator === 1 && rJo.completed === 1, rJo);
-  check('報表：達到門檻人數', rt.eligible === 2, rt);
+  check('報表：達到門檻人數', rt.eligible === 2 && rt.registered === 3, [rt.eligible, rt.registered]);
   check('改範本不影響已建立的活動任務', ok('events.get', { eventId: evId }, amy.token).event.tasks.every((t) => t.title !== '改過的標題'));
 }
 

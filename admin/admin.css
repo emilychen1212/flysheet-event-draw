@@ -677,3 +677,6 @@ table.table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .rtask-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 8px; }
 .rtask-stats .stat { background: var(--gray-50); border-radius: 12px; padding: 12px 14px; }
 .rsub { font-size: 14px; color: var(--navy-800); margin: 18px 0 8px; }
+.task-rule { margin-top: 10px; padding: 10px 14px; border-radius: 10px; background: var(--navy-50); border: 1px solid var(--navy-100); color: var(--navy-800); font-size: 14px; }
+.task-rule b { color: var(--orange-600); }
+.task-rule.bad { background: var(--red-100); border-color: #f2c9bf; color: var(--red-600); }

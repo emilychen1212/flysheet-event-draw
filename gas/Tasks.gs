@@ -9,7 +9,8 @@
 
 var VERIFY_METHODS = ['staff_pin', 'self_check', 'quiz'];
 var VERIFY_ENABLED = ['staff_pin', 'self_check'];   // quiz 第二版才開放
-var TASK_MODES = ['none', 'any', 'required_plus'];
+// cards＝依任務卡的必做／選做判斷（目前唯一的模式）；any、required_plus 是舊活動的設定，照下方規則相容
+var TASK_MODES = ['none', 'cards', 'any', 'required_plus'];
 var PIN_MAX_FAILS = 5;            // 同一位參加者、同一任務連續輸錯次數
 var PIN_LOCK_SECONDS = 60;        // 鎖定時間
 var PIN_TASK_FAILS_PER_MIN = 30;  // 同一任務每分鐘最多接受的錯誤次數（防止換身分一直猜）
@@ -220,11 +221,12 @@ function cleanEventTasks_(list, taskMode, taskMinOptional, existingTasks) {
       keepPin: old ? old.pinHash : ''
     };
   });
-  if (taskMode !== 'none' && !out.length) throw appError_('已開啟體驗任務門檻，請至少加入一個任務');
-  if (taskMode === 'required_plus') {
+  if (taskMode !== 'none' && !out.length) throw appError_('已開啟體驗任務，請至少加入一個任務');
+  if (taskMode !== 'none') {
     var optional = out.filter(function (t) { return !t.required; }).length;
-    if (taskMinOptional > optional) throw appError_('選做任務只有 ' + optional + ' 個，「至少完成 N 個選做」不能設成 ' + taskMinOptional);
-    if (!out.some(function (t) { return t.required; }) && taskMinOptional < 1) throw appError_('沒有必做任務時，選做任務至少要完成 1 個');
+    var n = effectiveMinOptional_(taskMode, taskMinOptional, out);
+    if (n > optional) throw appError_('選做任務只有 ' + optional + ' 個，「選做至少完成幾個」不能設成 ' + n);
+    if (!out.some(function (t) { return t.required; }) && n < 1) throw appError_('沒有必做任務時，選做任務至少要完成 1 個');
   }
   return out;
 }
@@ -282,7 +284,18 @@ function completionsOf_(ev, participantId) {
   return where_('TaskCompletions', function (c) { return c.eventId === ev.eventId && c.participantId === participantId; });
 }
 
-/** 依門檻計算是否有抽獎資格 */
+/**
+ * 選做至少要完成幾個（N）。
+ * 舊活動的「完成任一任務」：沒有必做時等於 N＝1；有必做時，必做卡片照樣要完成。
+ */
+function effectiveMinOptional_(taskMode, n, tasks) {
+  n = Number(n) || 0;
+  var hasRequired = (tasks || []).some(function (t) { return t.required; });
+  if (!hasRequired && n < 1) return 1;
+  return n;
+}
+
+/** 抽獎資格：所有必做都完成，而且選做完成至少 N 個 */
 function taskProgress_(ev, participantId) {
   var tasks = eventTasksOf_(ev.eventId);
   var done = {};
@@ -291,20 +304,15 @@ function taskProgress_(ev, participantId) {
   var optional = tasks.filter(function (t) { return !t.required; });
   var doneReq = required.filter(function (t) { return done[t.eventTaskId]; }).length;
   var doneOpt = optional.filter(function (t) { return done[t.eventTaskId]; }).length;
-  var eligible, need;
-  if (ev.taskMode === 'any') {
-    eligible = doneReq + doneOpt >= 1;
-    need = eligible ? 0 : 1;
-  } else {
-    var n = ev.taskMinOptional || 0;
-    eligible = doneReq >= required.length && doneOpt >= n;
-    need = Math.max(0, required.length - doneReq) + Math.max(0, n - doneOpt);
-  }
+  var n = Math.min(optional.length, effectiveMinOptional_(ev.taskMode, ev.taskMinOptional, tasks));
+  var requiredLeft = Math.max(0, required.length - doneReq);
+  var optionalLeft = Math.max(0, n - doneOpt);
   return {
     completed: tasks.filter(function (t) { return done[t.eventTaskId]; }).map(function (t) { return t.eventTaskId; }),
-    eligible: eligible, need: need,
-    requiredLeft: Math.max(0, required.length - doneReq),
-    optionalLeft: ev.taskMode === 'required_plus' ? Math.max(0, (ev.taskMinOptional || 0) - doneOpt) : 0
+    eligible: requiredLeft === 0 && optionalLeft === 0,
+    need: requiredLeft + optionalLeft,
+    requiredLeft: requiredLeft, optionalLeft: optionalLeft,
+    requiredTotal: required.length, optionalNeed: n, optionalTotal: optional.length
   };
 }
 

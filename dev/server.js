@@ -73,7 +73,7 @@ if (process.env.SEED !== '0') {
       verifyMethod: 'staff_pin', pin: '1234' }, extra || {});
     call('events.save', { event: { eventCode: 'NTHU', clientId: nthu.clientId, title: '資料庫體驗抽抽樂', subtitle: '完成資料庫體驗任務就能抽獎！',
       clientDisplayName: '清華大學圖書館 × 飛資得', startAt: '2026-11-01T09:00', endAt: '2026-12-31T17:00', status: 'active', gameType: 'wheel',
-      drawMode: 'self', regMode: 'before', dailyLimit: 1, taskMode: 'required_plus', taskMinOptional: 1 },
+      drawMode: 'self', regMode: 'before', dailyLimit: 1, taskMode: 'cards', taskMinOptional: 1 },
       prizes: [{ label: '頭獎', name: '保溫杯', quantity: 5, isSpecial: true }, { label: '精美好禮', name: '帆布袋', quantity: 30 }, { name: '再接再厲', quantity: 20, isLose: true }],
       tasks: [tk('UpToDate', { required: true }), tk('JoVE'), tk('Acland', { verifyMethod: 'self_check', pin: '' }), tk('HST')] }, sales);
   }

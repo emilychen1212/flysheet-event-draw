@@ -13,17 +13,15 @@ export function tasksSectionHtml(ev, dis, num) {
     <h2 class="card-title"><span><span class="num">${num}</span>體驗任務</span></h2>
     <p class="muted small" style="margin-top:-6px">參加者先選想體驗的資料庫、完成對應任務，達到門檻才能抽獎。資格由系統判斷，參加者沒辦法自己跳過。</p>
     <div class="notice warn" id="taskNeedBefore" hidden><span class="i">!</span><span>體驗任務要搭配「先登記再抽」，請到上方「登記設定」切換。</span></div>
-    <div class="form-grid">
-      <div class="field"><label>抽獎門檻</label>
-        <select class="input" name="taskMode" ${dis}>
-          <option value="none">不使用體驗任務（填資料就能抽）</option>
-          <option value="any">完成任一任務</option>
-          <option value="required_plus">完成所有必做＋至少 N 個選做</option>
-        </select></div>
-      <div class="field" id="taskNBox"><label>至少完成幾個選做任務（N）</label>
+    <label class="switch"><input type="checkbox" name="taskOn" ${dis}><span class="track"></span>使用體驗任務（完成任務才能抽獎）</label>
+    <div class="notice warn" id="taskLegacy" hidden style="margin-top:12px"><span class="i">!</span><span>這個活動原本設定「完成任一任務」。現在改成依任務卡判斷：<b>勾了「必做」的任務卡一定要完成</b>。請確認下方規則是否符合你的需求，再按儲存。</span></div>
+    <div id="taskRuleBox" style="margin-top:14px">
+      <div class="field" style="max-width:320px"><label>選做任務至少要完成幾個</label>
         <input class="input" type="number" name="taskMinOptional" min="0" max="30" ${dis}>
-        <div class="hint">0＝只要完成所有必做任務</div></div>
+        <div class="hint" id="taskNHint">0＝選做任務可以不做</div></div>
+      <div class="task-rule" id="taskRule"></div>
     </div>
+    <input type="hidden" name="taskMode">
     <div id="taskBox" style="margin-top:16px">
       ${dis ? '' : `<div class="label" style="font-weight:500;font-size:14px">加入任務卡</div>
       <div class="muted small">下面列出這個客戶有訂的資料庫，點範本就會<b>複製</b>成這個活動的任務（之後修改不會影響範本）。</div>
@@ -40,19 +38,38 @@ export function tasksSectionHtml(ev, dis, num) {
 
 export async function bindTasks(root, form, ev, { ro, markDirty }) {
   const F = (n) => form.elements[n];
-  F('taskMode').value = ev.taskMode || 'none';
-  F('taskMinOptional').value = ev.taskMinOptional || 0;
+  const on = !!ev.taskMode && ev.taskMode !== 'none';
+  F('taskOn').checked = on;
+  F('taskMode').value = on ? 'cards' : 'none';
+  const legacyAny = ev.taskMode === 'any';
+  const hadRequired = (ev.tasks || []).some((t) => t.required);
+  // 舊的「完成任一任務」沒有必做時，等於選做至少 1 個
+  F('taskMinOptional').value = legacyAny && !hadRequired ? Math.max(1, ev.taskMinOptional || 0) : (ev.taskMinOptional || 0);
   const dis = ro ? 'disabled' : '';
   let tasks = (ev.tasks || []).map((t) => ({ ...t, pin: '' }));
   let tpls = [];
   let cdbs = [];
 
   const sync = () => {
-    const mode = F('taskMode').value;
+    const isOn = F('taskOn').checked;
+    F('taskMode').value = isOn ? 'cards' : 'none';
     const regMode = (form.querySelector('input[name=regMode]:checked') || {}).value;
-    $('#taskNBox', root).hidden = mode !== 'required_plus';
-    $('#taskBox', root).hidden = mode === 'none' && !tasks.length;
-    $('#taskNeedBefore', root).hidden = !(mode !== 'none' && regMode !== 'before');
+    $('#taskRuleBox', root).hidden = !isOn;
+    $('#taskBox', root).hidden = !isOn && !tasks.length;
+    $('#taskNeedBefore', root).hidden = !(isOn && regMode !== 'before');
+    $('#taskLegacy', root).hidden = !(isOn && legacyAny && tasks.some((t) => t.required));
+    // 即時白話規則
+    const req = tasks.filter((t) => t.required).length;
+    const opt = tasks.length - req;
+    let n = Math.max(0, parseInt(F('taskMinOptional').value, 10) || 0);
+    if (!req && n < 1 && opt) n = 1;
+    const box = $('#taskRule', root);
+    $('#taskNHint', root).textContent = req ? '0＝選做任務可以不做' : '沒有必做任務時，至少要 1 個';
+    if (!tasks.length) { box.className = 'task-rule muted'; box.textContent = '還沒有加入任務卡'; return; }
+    const bad = n > opt ? `選做任務只有 ${opt} 個，不能要求完成 ${n} 個` : '';
+    const parts = [req ? `完成 <b>${req} 個必做</b>` : '', n ? `${req ? '＋' : '完成'}至少 <b>${n} 個選做</b>（共 ${opt} 個可選）` : ''].filter(Boolean).join('');
+    box.className = 'task-rule' + (bad ? ' bad' : '');
+    box.innerHTML = bad || `參加者要${parts}，最少共 <b>${req + n}</b> 個任務才能抽獎`;
   };
 
   const inherited = (t) => t.url ? '' : (t.clientUrl ? `沿用該校連結：${t.clientUrl}` : t.templateUrl ? `沿用範本預設連結：${t.templateUrl}` : '還沒有連結');
@@ -114,8 +131,12 @@ export async function bindTasks(root, form, ev, { ro, markDirty }) {
   }
   await loadClient();
 
+  form.addEventListener('input', (e) => { if (e.target.name === 'taskMinOptional') sync(); });
   form.addEventListener('change', (e) => {
-    if (['taskMode', 'regMode'].includes(e.target.name)) sync();
+    if (['taskOn', 'regMode', 'taskMinOptional'].includes(e.target.name)) {
+      if (e.target.name === 'taskOn' && e.target.checked && !tasks.some((t) => t.required) && !(parseInt(F('taskMinOptional').value, 10) > 0)) F('taskMinOptional').value = 1;
+      sync();
+    }
     const card = e.target.closest('.etask');
     if (!card) return;
     const t = tasks[card.dataset.i];
@@ -137,7 +158,7 @@ export async function bindTasks(root, form, ev, { ro, markDirty }) {
       tasks.push({ eventTaskId: '', templateId: t.templateId, dbName: c ? c.dbName : t.dbName, title: t.title, description: t.description,
         dbIntro: t.dbIntro, actionText: t.actionText, url: '', verifyMethod: t.verifyMethod === 'self_check' ? 'self_check' : 'staff_pin',
         pin: '', hasPin: false, required: false, clientUrl: c ? c.url : '', templateUrl: t.defaultUrl });
-      if (F('taskMode').value === 'none') F('taskMode').value = 'any';
+      if (!F('taskOn').checked) { F('taskOn').checked = true; if (!(parseInt(F('taskMinOptional').value, 10) > 0)) F('taskMinOptional').value = 1; }
       draw(); markDirty();
       toast(`已加入「${t.title}」`);
       return;
@@ -169,10 +190,13 @@ export async function bindTasks(root, form, ev, { ro, markDirty }) {
       }))
     }),
     validate: (regMode) => {
-      const mode = F('taskMode').value;
-      if (mode === 'none') return null;
+      if (!F('taskOn').checked) return null;
       if (regMode !== 'before') return ['體驗任務要搭配「先登記再抽」，請到登記設定切換'];
-      if (!tasks.length) return ['已開啟體驗任務門檻，請至少加入一個任務'];
+      if (!tasks.length) return ['已開啟體驗任務，請至少加入一個任務'];
+      const req = tasks.filter((t) => t.required).length;
+      const n = parseInt(F('taskMinOptional').value, 10) || 0;
+      if (!req && n < 1) return ['沒有必做任務時，「選做任務至少要完成幾個」至少要填 1'];
+      if (n > tasks.length - req) return [`選做任務只有 ${tasks.length - req} 個，「選做任務至少要完成幾個」不能填 ${n}`];
       const bad = tasks.find((t) => t.verifyMethod === 'staff_pin' && !t.pin && !t.hasPin);
       if (bad) return [`「${bad.title}」是工作人員核銷，請設定 4 位數 PIN`];
       const badPin = tasks.find((t) => t.pin && !/^\d{4}$/.test(t.pin));
