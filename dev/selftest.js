@@ -339,6 +339,15 @@ console.log('\n[體驗任務]');
   check('報表：必做任務分母是全部登記者', rUp.required && rUp.denominator === 3 && rUp.completed === 2 && rUp.dropped === 1, rUp);
   check('報表：選做任務分母是選該資料庫的人', !rJo.required && rJo.denominator === 1 && rJo.completed === 1, rJo);
   check('報表：達到門檻人數', rt.eligible === 2 && rt.registered === 3, [rt.eligible, rt.registered]);
+  // 同一資料庫名稱寫法不同（大小寫、空白）也算同一個
+  const mixed = ok('events.save', { event: baseEvent('MIX1', c1.clientId, { regMode: 'before', taskMode: 'cards', taskMinOptional: 1 }), prizes: [{ name: '筆', quantity: 5 }],
+    tasks: [{ dbName: 'UpToDate', title: 'A', verifyMethod: 'self_check' }, { dbName: 'uptodate ', title: 'B', verifyMethod: 'self_check' }, { dbName: 'UPTODATE', title: 'C', verifyMethod: 'self_check' }] }, amy.token);
+  const rm = ok('public.register', { eventCode: 'MIX1', name: '混', email: 'mix@example.com', organization: '清大', identity: '學生', privacyConsent: true });
+  const sm = ok('public.selectDbs', { eventCode: 'MIX1', pt: rm.pt, dbs: ['UpToDate'] });
+  ok('public.completeTask', { eventCode: 'MIX1', pt: rm.pt, eventTaskId: mixed.event.tasks[1].eventTaskId });
+  const rmix = ok('reports.get', { eventId: mixed.event.eventId }, amy.token).tasks;
+  check('報表：寫法不同的資料庫合併成一個', rmix.dbs.length === 1 && rmix.dbs[0].selected === 1, rmix.dbs);
+  check('報表：三張同資料庫任務的分母都是選擇的人', rmix.tasks.every((t) => t.denominator === 1), rmix.tasks);
   check('改範本不影響已建立的活動任務', ok('events.get', { eventId: evId }, amy.token).event.tasks.every((t) => t.title !== '改過的標題'));
 }
 

@@ -111,16 +111,17 @@ function taskReport_(ev, people) {
   where_('TaskCompletions', function (c) { return c.eventId === ev.eventId && !c.isTest && ids[c.participantId]; })
     .forEach(function (c) { (done[c.eventTaskId] = done[c.eventTaskId] || {})[c.participantId] = 1; });
   var picked = {};
-  people.forEach(function (x) { (x.selectedDbs || []).forEach(function (d) { (picked[d] = picked[d] || {})[x.participantId] = 1; }); });
+  people.forEach(function (x) { (x.selectedDbs || []).forEach(function (d) { (picked[dbKey_(d)] = picked[dbKey_(d)] || {})[x.participantId] = 1; }); });
   var dbNames = [];
-  tasks.forEach(function (t) { if (dbNames.indexOf(t.dbName) < 0) dbNames.push(t.dbName); });
+  var seenDb = {};
+  tasks.forEach(function (t) { if (!seenDb[dbKey_(t.dbName)]) { seenDb[dbKey_(t.dbName)] = 1; dbNames.push(t.dbName); } });
   var dbs = dbNames.map(function (d) {
-    var n = Object.keys(picked[d] || {}).length;
+    var n = Object.keys(picked[dbKey_(d)] || {}).length;
     return { dbName: d, selected: n, rate: total ? n / total : null };
   });
   var taskRows = tasks.map(function (t) {
     // 必做任務：分母是全部登記者；選做任務：分母是有選這個資料庫的人
-    var base = t.required ? ids : (picked[t.dbName] || {});
+    var base = t.required ? ids : (picked[dbKey_(t.dbName)] || {});
     var denom = Object.keys(base).length;
     var completed = Object.keys(done[t.eventTaskId] || {}).filter(function (pid) { return base[pid]; }).length;
     var completedAll = Object.keys(done[t.eventTaskId] || {}).length;

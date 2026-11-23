@@ -9,6 +9,8 @@ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const ARROW = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
 
 const PT_KEY = (code) => 'fed.pt.' + code;
+/** 資料庫名稱比對：不分大小寫、忽略多餘空白（和後端一致） */
+const dbKey = (n) => String(n || '').trim().toLowerCase().replace(/\s+/g, ' ');
 export function savePt(code, pt) { try { pt ? localStorage.setItem(PT_KEY(code), pt) : localStorage.removeItem(PT_KEY(code)); } catch (e) { /* 無痕模式 */ } }
 export function loadPt(code) { try { return localStorage.getItem(PT_KEY(code)) || ''; } catch (e) { return ''; } }
 
@@ -39,7 +41,7 @@ export function renderTasks(stage, o) {
   let state = o.state;
   const dbs = [];
   tasks.forEach((t) => {
-    let d = dbs.find((x) => x.dbName === t.dbName);
+    let d = dbs.find((x) => dbKey(x.dbName) === dbKey(t.dbName));
     if (!d) { d = { dbName: t.dbName, intro: t.dbIntro, required: false, count: 0 }; dbs.push(d); }
     d.count++;
     if (t.required) d.required = true;
@@ -54,13 +56,13 @@ export function renderTasks(stage, o) {
 
   /* ---------- 步驟 1：選擇想體驗的資料庫 ---------- */
   const choose = () => {
-    const chosen = new Set(state.selectedDbs || dbs.filter((d) => d.required).map((d) => d.dbName));
+    const chosen = new Set((state.selectedDbs || dbs.filter((d) => d.required).map((d) => d.dbName)).map(dbKey));
     stage.innerHTML = `<div class="panel t-panel">
       <div class="t-step">步驟 1／2</div>
       <h2>選擇想體驗的資料庫 🔍</h2>
       <p class="lead">可以複選。${esc(rulesText(state.progress))}。</p>
       <div class="t-dbs">${dbs.map((d) => `<label class="t-db ${d.required ? 'req' : ''}">
-        <input type="checkbox" value="${esc(d.dbName)}" ${chosen.has(d.dbName) || d.required ? 'checked' : ''} ${d.required ? 'disabled' : ''}>
+        <input type="checkbox" value="${esc(d.dbName)}" ${chosen.has(dbKey(d.dbName)) || d.required ? 'checked' : ''} ${d.required ? 'disabled' : ''}>
         <span class="box"><span class="nm">${esc(d.dbName)}${d.required ? '<em>必做</em>' : ''}${d.count > 1 ? `<small class="cnt">${d.count} 個任務</small>` : ''}</span>${d.intro ? `<span class="in">${esc(d.intro)}</span>` : ''}</span>
       </label>`).join('')}</div>
       <div id="tErr"></div>
@@ -78,9 +80,9 @@ export function renderTasks(stage, o) {
 
   /* ---------- 步驟 2：任務卡 ---------- */
   const list = () => {
-    const sel = new Set(state.selectedDbs || []);
+    const sel = new Set((state.selectedDbs || []).map(dbKey));
     const done = new Set(state.progress.completed);
-    const shown = tasks.filter((t) => t.required || sel.has(t.dbName));
+    const shown = tasks.filter((t) => t.required || sel.has(dbKey(t.dbName)));
     const p = state.progress;
     const total = Math.max(1, (p.requiredTotal || 0) + (p.optionalNeed || 0));
     const pct = p.eligible ? 100 : Math.round(Math.max(0, Math.min(1, (total - p.need) / total)) * 100);
