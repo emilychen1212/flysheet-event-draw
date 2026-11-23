@@ -348,6 +348,15 @@ console.log('\n[體驗任務]');
   const rmix = ok('reports.get', { eventId: mixed.event.eventId }, amy.token).tasks;
   check('報表：寫法不同的資料庫合併成一個', rmix.dbs.length === 1 && rmix.dbs[0].selected === 1, rmix.dbs);
   check('報表：三張同資料庫任務的分母都是選擇的人', rmix.tasks.every((t) => t.denominator === 1), rmix.tasks);
+  // 每個資料庫都有必做時會跳過選擇資料庫：同資料庫的選做任務仍要算進「已選」
+  const allReq = ok('events.save', { event: baseEvent('REQDB', c1.clientId, { regMode: 'before', taskMode: 'cards', taskMinOptional: 0 }), prizes: [{ name: '筆', quantity: 5 }],
+    tasks: [{ dbName: 'UpToDate', title: '必做一', verifyMethod: 'self_check', required: true }, { dbName: 'JoVE', title: '必做二', verifyMethod: 'self_check', required: true },
+      { dbName: 'UpToDate', title: '選做', verifyMethod: 'self_check' }] }, amy.token);
+  const rq = ok('public.register', { eventCode: 'REQDB', name: '全必做', email: 'reqdb@example.com', organization: '清大', identity: '學生', privacyConsent: true });
+  const sq = ok('public.selectDbs', { eventCode: 'REQDB', pt: rq.pt, dbs: [] });
+  check('有必做任務的資料庫自動算成已選', sq.selectedDbs.length === 2, sq.selectedDbs);
+  const rr = ok('reports.get', { eventId: allReq.event.eventId }, amy.token).tasks;
+  check('報表：有必做的資料庫，選做任務分母是全部登記者', rr.tasks.find((t) => t.title === '選做').denominator === 1 && rr.dbs.every((d) => d.selected === 1), rr);
   check('改範本不影響已建立的活動任務', ok('events.get', { eventId: evId }, amy.token).event.tasks.every((t) => t.title !== '改過的標題'));
 }
 

@@ -111,7 +111,11 @@ function taskReport_(ev, people) {
   where_('TaskCompletions', function (c) { return c.eventId === ev.eventId && !c.isTest && ids[c.participantId]; })
     .forEach(function (c) { (done[c.eventTaskId] = done[c.eventTaskId] || {})[c.participantId] = 1; });
   var picked = {};
-  people.forEach(function (x) { (x.selectedDbs || []).forEach(function (d) { (picked[dbKey_(d)] = picked[dbKey_(d)] || {})[x.participantId] = 1; }); });
+  // 有必做任務的資料庫，每位參加者都一定會做，算成都有選
+  var requiredDbs = tasks.filter(function (t) { return t.required; }).map(function (t) { return t.dbName; });
+  people.forEach(function (x) {
+    (x.selectedDbs || []).concat(requiredDbs).forEach(function (d) { (picked[dbKey_(d)] = picked[dbKey_(d)] || {})[x.participantId] = 1; });
+  });
   var dbNames = [];
   var seenDb = {};
   tasks.forEach(function (t) { if (!seenDb[dbKey_(t.dbName)]) { seenDb[dbKey_(t.dbName)] = 1; dbNames.push(t.dbName); } });

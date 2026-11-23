@@ -347,9 +347,13 @@ function apiPublicSelectDbs_(p) {
   if (!hasTasks_(o.ev)) throw appError_('這個活動沒有體驗任務');
   var person = participantFromToken_(o.ev, p.pt);
   var valid = {};
-  eventTasksOf_(o.ev.eventId).forEach(function (t) { valid[dbKey_(t.dbName)] = t.dbName; });
+  var requiredDbs = [];
+  eventTasksOf_(o.ev.eventId).forEach(function (t) {
+    if (!valid[dbKey_(t.dbName)]) valid[dbKey_(t.dbName)] = t.dbName;
+    if (t.required) requiredDbs.push(t.dbName);
+  });
   var seen = {};
-  var dbs = (Array.isArray(p.dbs) ? p.dbs : []).map(function (d) { return valid[dbKey_(d)]; })
+  var dbs = (Array.isArray(p.dbs) ? p.dbs : []).concat(requiredDbs).map(function (d) { return valid[dbKey_(d)]; })
     .filter(function (d) { if (!d || seen[d]) return false; seen[d] = 1; return true; });
   update_('Participants', person.participantId, { selectedDbs: dbs });
   person.selectedDbs = dbs;

@@ -80,7 +80,7 @@ export function renderTasks(stage, o) {
 
   /* ---------- 步驟 2：任務卡 ---------- */
   const list = () => {
-    const sel = new Set((state.selectedDbs || []).map(dbKey));
+    const sel = new Set((state.selectedDbs || []).concat(dbs.filter((d) => d.required).map((d) => d.dbName)).map(dbKey));
     const done = new Set(state.progress.completed);
     const shown = tasks.filter((t) => t.required || sel.has(dbKey(t.dbName)));
     const p = state.progress;
