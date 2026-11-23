@@ -32,7 +32,8 @@ export function renderTasks(stage, o) {
   const dbs = [];
   tasks.forEach((t) => {
     let d = dbs.find((x) => x.dbName === t.dbName);
-    if (!d) { d = { dbName: t.dbName, intro: t.dbIntro, required: false }; dbs.push(d); }
+    if (!d) { d = { dbName: t.dbName, intro: t.dbIntro, required: false, count: 0 }; dbs.push(d); }
+    d.count++;
     if (t.required) d.required = true;
     if (!d.intro && t.dbIntro) d.intro = t.dbIntro;
   });
@@ -52,7 +53,7 @@ export function renderTasks(stage, o) {
       <p class="lead">可以複選。${esc(rulesText(ev, tasks))}。</p>
       <div class="t-dbs">${dbs.map((d) => `<label class="t-db ${d.required ? 'req' : ''}">
         <input type="checkbox" value="${esc(d.dbName)}" ${chosen.has(d.dbName) || d.required ? 'checked' : ''} ${d.required ? 'disabled' : ''}>
-        <span class="box"><span class="nm">${esc(d.dbName)}${d.required ? '<em>必做</em>' : ''}</span>${d.intro ? `<span class="in">${esc(d.intro)}</span>` : ''}</span>
+        <span class="box"><span class="nm">${esc(d.dbName)}${d.required ? '<em>必做</em>' : ''}${d.count > 1 ? `<small class="cnt">${d.count} 個任務</small>` : ''}</span>${d.intro ? `<span class="in">${esc(d.intro)}</span>` : ''}</span>
       </label>`).join('')}</div>
       <div id="tErr"></div>
       <button class="p-btn" id="tNext">下一步：查看任務</button>

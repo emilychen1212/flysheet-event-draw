@@ -335,3 +335,5 @@ textarea.p-input { min-height: 80px; resize: vertical; }
 /* 手機連點按鈕（例如 PIN 數字鍵）不要觸發點兩下放大 */
 button, a, label, .p-btn, .t-keys, .t-pin, .chip, .p-opt, .t-db, .g-cc .dial, .g-gacha .knob, .g-slot .lever { touch-action: manipulation; }
 .t-keys button { user-select: none; -webkit-user-select: none; }
+
+.t-db .nm .cnt { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-muted); }
