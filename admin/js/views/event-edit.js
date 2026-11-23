@@ -152,7 +152,8 @@ export async function render(root, [eventId], app) {
     <section class="card" id="s-prize">
       <h2 class="card-title"><span><span class="num">4</span>獎池設定</span></h2>
       <p class="muted small" style="margin-top:-6px">每次抽獎依「剩餘數量」加權隨機，數量越多越容易抽中。一般獎項全部抽完後活動就會顯示「獎品已全數送出」。「獎項標籤」選填（例如頭獎、加碼獎），會顯示在抽抽樂的獎項卡片上。</p>
-      <div class="prize-head"><span></span><span>顏色</span><span>獎項標籤 ＋ 獎品名稱</span><span>數量</span><span></span><span></span><span style="text-align:right">占比</span><span></span></div>
+      <p class="muted small" style="margin-top:-6px">每一列是一個「抽得到的結果」。勾選「銘謝惠顧」代表這一列是<b>沒中獎</b>（不送東西）；想要有銘謝惠顧，請按下方「新增『銘謝惠顧』」另外加一列，數量越多中獎率越低。勾選「特別獎」會在抽中時播放全畫面慶祝動畫。</p>
+      <div class="prize-head"><span></span><span>顏色</span><span>獎項標籤 ＋ 獎品名稱</span><span>數量</span><span style="grid-column:span 2">類型</span><span style="text-align:right">占比</span><span></span></div>
       <div class="prize-list" id="prizeList"></div>
       ${ro ? '' : `<div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button type="button" class="btn sm" id="addPrize">${ICON.plus}新增獎項</button>
