@@ -106,7 +106,7 @@ const FIELD_DEF = {
   name: { label: '姓名', type: 'text', auto: 'name', max: 50 },
   email: { label: 'Email', type: 'email', auto: 'email', mode: 'email', max: 200 },
   phone: { label: '手機', type: 'tel', auto: 'tel', mode: 'numeric', max: 20, ph: '09xxxxxxxx' },
-  organization: { label: '服務單位／就讀學校', type: 'text', auto: 'organization', max: 100, ph: '例：臺大醫院 內科部、臺大醫學系' }
+  organization: { label: '服務單位／就讀學校、科系', type: 'text', auto: 'organization', max: 100, ph: '例：臺大醫院 內科部、臺大醫學系' }
 };
 
 function regFormHtml({ claim }) {
@@ -169,7 +169,7 @@ function readForm(form) {
 function checkForm(d) {
   const rf = S.ev.regFields || { fields: {}, custom: [] };
   const f = rf.fields || {};
-  const labels = { name: '姓名', email: 'Email', phone: '手機', organization: '服務單位／就讀學校', identity: '身分' };
+  const labels = { name: '姓名', email: 'Email', phone: '手機', organization: '服務單位／就讀學校、科系', identity: '身分' };
   for (const k of Object.keys(labels)) if (f[k] === 'required' && !d[k]) return [`請填寫「${labels[k]}」`, k];
   if (d.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return ['Email 格式不正確', 'email'];
   if (d.phone && d.phone.replace(/\D/g, '').length < 8) return ['手機號碼格式不正確', 'phone'];

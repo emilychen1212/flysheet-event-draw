@@ -48,7 +48,7 @@ function apiPublicGetEvent_(p) {
 function cleanRegistration_(ev, p) {
   var rf = ev.regFields || DEFAULT_REG_FIELDS;
   var f = rf.fields;
-  var labels = { name: '姓名', email: 'Email', phone: '手機', organization: '服務單位／就讀學校', identity: '身分' };
+  var labels = { name: '姓名', email: 'Email', phone: '手機', organization: '服務單位／就讀學校、科系', identity: '身分' };
   var d = {
     name: str_(p.name, 50),
     email: normEmail_(p.email),
